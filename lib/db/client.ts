@@ -25,6 +25,11 @@ export function getDb(): Db | null {
     max: 5,
     idle_timeout: 20,
     connect_timeout: 10,
+    // Serverless (Vercel) reuses connections across invocations through the
+    // Supabase pooler, where named prepared statements collide ("prepared
+    // statement already exists"). Disabling prepares is the supported setting
+    // for pooled/serverless Postgres and costs nothing at this query volume.
+    prepare: false,
     // §28.6 — the read-only role is enforced at the database for /api/ask; this
     // pool is the read-write ETL/serving pool.
   });
@@ -46,6 +51,7 @@ export function getReadonlySql(): ReturnType<typeof postgres> | null {
     max: 2,
     idle_timeout: 10,
     connect_timeout: 10,
+    prepare: false,
     connection: { statement_timeout: 15_000 },
   });
   return readonlyClient;
