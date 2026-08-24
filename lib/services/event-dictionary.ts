@@ -71,7 +71,7 @@ const KIOSK = new Set<string>(KIOSK_TAXONOMY);
 
 /** The funnel events, with their §5.2 verification status. */
 function funnelEvents(): EventDef[] {
-  return FUNNEL_STEPS.map((s) => {
+  return FUNNEL_STEPS.filter((s) => !s.hidden).map((s) => {
     const status: EventStatus =
       s.confirmed === 'confirmed'
         ? 'confirmed'

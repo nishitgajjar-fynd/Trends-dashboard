@@ -34,7 +34,7 @@ const BASE_SESSIONS_PER_DAY = 1700;
  * never instrumented — including it here would manufacture data for the one
  * step the dashboard is supposed to report as invisible (A6).
  */
-const SPINE = FUNNEL_STEPS.filter((s) => s.instrumented).map((s) => ({ event: s.step, ratio: s.ratio }));
+const SPINE = FUNNEL_STEPS.filter((s) => s.instrumented && !s.hidden).map((s) => ({ event: s.step, ratio: s.ratio }));
 
 /**
  * Branch shapes. `share` is the fraction of sessions *reaching the branch

@@ -125,6 +125,9 @@ export interface FunnelStepDef {
    * real event.
    */
   eventName?: string;
+  /** Counted into the mart but hidden from the visual funnel (e.g. payment_failure,
+   *  needed only as a denominator for the payment success rate). */
+  hidden?: boolean;
   label: string;
   order: number;
   /** Conversion from the previous step. */
@@ -142,16 +145,24 @@ export interface FunnelStepDef {
 export const FUNNEL_STEPS: FunnelStepDef[] = [
   { step: 'session_start', label: 'Session start', order: 1, ratio: 1, instrumented: true, confirmed: 'ga4_standard' },
   { step: 'scanner_open', label: 'Scanner open', order: 2, ratio: 0.42, instrumented: true, confirmed: 'verify' },
-  { step: 'scan_attempt', label: 'Scan attempt', order: 3, ratio: 0.83, instrumented: true, confirmed: 'confirmed' },
-  { step: 'scan_success', label: 'Scan success', order: 4, ratio: 0.94, instrumented: true, confirmed: 'confirmed' },
+  // Companion (Scan & Go) fires custom event names, all verified in the
+  // Companion-only property analytics_524294430 (single stream 13595026820).
+  { step: 'scan_attempt', eventName: 'scan_go_scan_attempt', label: 'Scan attempt', order: 3, ratio: 0.83, instrumented: true, confirmed: 'confirmed' },
+  { step: 'scan_success', eventName: 'scanner_product_found', label: 'Scan success', order: 4, ratio: 0.94, instrumented: true, confirmed: 'confirmed' },
+  // No distinct product-detail event — the scan result IS the product view — so
+  // this step stays an honest instrumentation gap rather than a guessed mapping.
   { step: 'view_item', label: 'Product viewed', order: 5, ratio: 0.88, instrumented: true, confirmed: 'verify' },
-  { step: 'add_to_cart', label: 'Added to bag', order: 6, ratio: 0.31, instrumented: true, confirmed: 'verify' },
-  { step: 'view_cart', label: 'Cart viewed', order: 7, ratio: 0.72, instrumented: true, confirmed: 'verify' },
-  { step: 'begin_checkout', label: 'Checkout begun', order: 8, ratio: 0.63, instrumented: true, confirmed: 'verify' },
+  { step: 'add_to_cart', eventName: 'scan_go_add_to_cart', label: 'Added to bag', order: 6, ratio: 0.31, instrumented: true, confirmed: 'confirmed' },
+  { step: 'view_cart', eventName: 'scan_go_cart_review', label: 'Cart viewed', order: 7, ratio: 0.72, instrumented: true, confirmed: 'confirmed' },
+  { step: 'begin_checkout', eventName: 'scan_go_proceed_checkout', label: 'Checkout begun', order: 8, ratio: 0.63, instrumented: true, confirmed: 'confirmed' },
+  // No add_payment_info event in Companion; payment success rate uses
+  // payment_success ÷ (payment_success + payment_failure) instead.
   { step: 'add_payment_info', label: 'Payment info added', order: 9, ratio: 0.78, instrumented: true, confirmed: 'verify' },
-  // Companion fires `payment_success` (verified against analytics_524294430),
-  // not the GA4-standard `purchase` event. The funnel ends here.
+  // Companion fires `payment_success`, not the GA4-standard `purchase` event.
+  // The funnel ends here.
   { step: 'purchase', eventName: 'payment_success', label: 'Payment success', order: 10, ratio: 0.9, instrumented: true, confirmed: 'confirmed' },
+  // Hidden: counted only as the denominator for the payment success rate.
+  { step: 'payment_failure', eventName: 'payment_failure', hidden: true, label: 'Payment failure', order: 11, ratio: 0, instrumented: true, confirmed: 'confirmed' },
 ];
 
 export interface FunnelRow {
@@ -182,6 +193,24 @@ export function fixtureFunnel(window: DateWindow): FunnelRow[] {
       let count = Math.round(sessions * share);
       for (const def of FUNNEL_STEPS) {
         const jitter = 0.95 + rng() * 0.1;
+        if (def.hidden) {
+          // payment_failure: ~11% of the successes just counted (~90% success
+          // rate), kept off the funnel chain so the visible steps are unaffected.
+          const failCount = Math.round(count * 0.11 * jitter);
+          out.push({
+            dateKey,
+            storeId: '',
+            platform,
+            appVersion: '9.44',
+            step: def.step,
+            stepOrder: def.order,
+            eventCount: def.instrumented ? failCount : 0,
+            sessionCount: def.instrumented ? failCount : 0,
+            userCount: def.instrumented ? failCount : 0,
+            isInstrumented: def.instrumented,
+          });
+          continue;
+        }
         count = def.order === 1 ? count : Math.round(count * def.ratio * jitter);
         out.push({
           dateKey,

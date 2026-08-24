@@ -283,8 +283,15 @@ export const journey = {
     ratioOrNull(stepCount(s, 'add_to_cart'), stepCount(s, 'scan_success')),
   checkoutRate: (s: FunnelStepAggregate[]) =>
     ratioOrNull(stepCount(s, 'begin_checkout'), stepCount(s, 'view_cart')),
-  paymentSuccessRate: (s: FunnelStepAggregate[]) =>
-    ratioOrNull(stepCount(s, 'purchase'), stepCount(s, 'add_payment_info')),
+  // Companion has no add_payment_info event, so the rate is the app's own
+  // success vs failure: payment_success ÷ (payment_success + payment_failure).
+  // (`purchase` is the internal step key for the payment_success event.)
+  paymentSuccessRate: (s: FunnelStepAggregate[]) => {
+    const ok = stepCount(s, 'purchase');
+    if (ok == null) return null;
+    const fail = stepCount(s, 'payment_failure') ?? 0;
+    return ratioOrNull(ok, ok + fail);
+  },
   sessionConversion: (s: FunnelStepAggregate[]) =>
     ratioOrNull(stepCount(s, 'purchase'), stepCount(s, 'session_start')),
   /** `1 − (step_{n+1} / step_n)`, ranked worst first by the caller. */

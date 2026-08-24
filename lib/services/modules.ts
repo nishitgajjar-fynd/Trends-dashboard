@@ -354,7 +354,7 @@ export async function journeyModule(input: ModuleInput = trailingWindow(28)): Pr
     }),
   ];
 
-  const labelled = FUNNEL_STEPS.map((def) => {
+  const labelled = FUNNEL_STEPS.filter((def) => !def.hidden).map((def) => {
     const s = steps.find((x) => x.step === def.step);
     const prevIdx = def.order - 2;
     const prevDef = FUNNEL_STEPS[prevIdx];
