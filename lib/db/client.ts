@@ -27,9 +27,12 @@ export function getDb(): Db | null {
   // statement cap, because a backfill insert can legitimately run long.
   const onVercel = Boolean(process.env.VERCEL);
   client = postgres(config.databaseUrl, {
-    max: onVercel ? 3 : 5,
-    idle_timeout: 20,
-    connect_timeout: 10,
+    // One connection per serverless instance keeps us well under Supabase's
+    // free-tier connection ceiling: many warm Vercel instances each holding a
+    // pool is what exhausts it. Locally the ETL wants a real pool.
+    max: onVercel ? 1 : 5,
+    idle_timeout: onVercel ? 10 : 20,
+    connect_timeout: onVercel ? 8 : 10,
     // Serverless (Vercel) reuses connections across invocations through the
     // Supabase pooler, where named prepared statements collide ("prepared
     // statement already exists"). Disabling prepares is the supported setting
