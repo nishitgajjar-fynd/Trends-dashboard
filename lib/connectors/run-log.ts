@@ -5,6 +5,7 @@
  * registry. The in-memory log is process-local and clearly labelled as such —
  * it is never presented as durable history.
  */
+import { cache } from 'react';
 import { desc, eq } from 'drizzle-orm';
 import { getDb } from '@/lib/db/client';
 import { minutesSince } from '@/lib/format/dates';
@@ -193,6 +194,49 @@ export async function recentRuns(limit = 50): Promise<RunRecord[]> {
   }
   return memory.slice(0, limit);
 }
+
+/**
+ * The latest run per connector, fetched in a single query and deduplicated per
+ * server render.
+ *
+ * The hub aggregates every module, and each module resolves freshness for its
+ * connectors. Done naively that is one `etl_run_log` round-trip per connector —
+ * dozens of sequential queries on a page whose only DB need is "when did each
+ * connector last run". On serverless behind a pooler that pile-up is what tipped
+ * the hub into a 300s timeout. `cache()` collapses all callers within a request
+ * onto one query; the map is tiny (one row per connector).
+ */
+export const latestRunMap = cache(async (): Promise<Map<string, RunRecord>> => {
+  const map = new Map<string, RunRecord>();
+  const db = getDb();
+  if (db) {
+    // Newest first, keep the first sighting of each connector.
+    const rows = await db.select().from(etlRunLog).orderBy(desc(etlRunLog.startedAt));
+    for (const r of rows) {
+      if (map.has(r.connector)) continue;
+      map.set(r.connector, {
+        runId: r.runId,
+        connector: r.connector,
+        startedAt: r.startedAt.toISOString(),
+        finishedAt: r.finishedAt?.toISOString() ?? null,
+        status: r.status as RunRecord['status'],
+        rowsIngested: r.rowsIngested,
+        bytesScanned: r.bytesScanned,
+        windowStart: r.windowStart?.toISOString() ?? null,
+        windowEnd: r.windowEnd?.toISOString() ?? null,
+        assertions: (r.assertions ?? []) as AssertionVerdict[],
+        error: r.error,
+        seeded: r.seeded ?? false,
+        ephemeral: false,
+      });
+    }
+    return map;
+  }
+  for (const r of [...memory].sort((a, b) => b.startedAt.localeCompare(a.startedAt))) {
+    if (!map.has(r.connector)) map.set(r.connector, r);
+  }
+  return map;
+});
 
 /** Trailing row counts for the `rowVolume` assertion baseline. */
 export async function trailingRowCounts(connector: string, days = 7): Promise<number[]> {

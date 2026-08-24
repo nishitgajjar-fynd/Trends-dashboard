@@ -21,8 +21,13 @@ let db: Db | null = null;
 export function getDb(): Db | null {
   if (!isDbConfigured()) return null;
   if (db) return db;
+  // On Vercel each function instance holds its own pool, so keep it small and
+  // make queries fail fast: a hung query should degrade to fixtures, never sit
+  // until the 300s function timeout. Locally (ETL) we want a bigger pool and no
+  // statement cap, because a backfill insert can legitimately run long.
+  const onVercel = Boolean(process.env.VERCEL);
   client = postgres(config.databaseUrl, {
-    max: 5,
+    max: onVercel ? 3 : 5,
     idle_timeout: 20,
     connect_timeout: 10,
     // Serverless (Vercel) reuses connections across invocations through the
@@ -30,6 +35,7 @@ export function getDb(): Db | null {
     // statement already exists"). Disabling prepares is the supported setting
     // for pooled/serverless Postgres and costs nothing at this query volume.
     prepare: false,
+    ...(onVercel ? { connection: { statement_timeout: 15_000 } } : {}),
     // §28.6 — the read-only role is enforced at the database for /api/ask; this
     // pool is the read-write ETL/serving pool.
   });

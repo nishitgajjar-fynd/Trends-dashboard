@@ -28,7 +28,7 @@ import type { DataSourceState } from '@/lib/connectors/types';
 import type { DateWindow } from '@/lib/format/dates';
 import { minutesSince } from '@/lib/format/dates';
 import { getConnector } from '@/lib/connectors/registry';
-import { lastRunFor, type RunRecord } from '@/lib/connectors/run-log';
+import { latestRunMap, type RunRecord } from '@/lib/connectors/run-log';
 import { fixtureCatalogueDaily, fixtureGaps, fixtureScanRows, type CatalogueDailyRow, type GapRow, type ScanRow } from '@/fixtures/catalogue';
 import {
   fixtureAppHealth,
@@ -87,7 +87,9 @@ export async function freshnessOf(
   // inside a test run.
   readRun: (
     id: string,
-  ) => Promise<Pick<RunRecord, 'finishedAt' | 'status' | 'error' | 'seeded'> | null> = lastRunFor,
+  ) => Promise<Pick<RunRecord, 'finishedAt' | 'status' | 'error' | 'seeded'> | null> = async (
+    id,
+  ) => (await latestRunMap()).get(id) ?? null,
 ): Promise<{ state: 'live' | 'stale' | 'fixture'; warnings: string[] }> {
   if (connectorIds.length === 0) return { state: 'live', warnings: [] };
 
