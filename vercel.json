@@ -3,7 +3,7 @@
   "framework": "nextjs",
   "regions": ["bom1"],
   "crons": [
-    { "path": "/api/cron/tick", "schedule": "*/15 * * * *" },
+    { "path": "/api/cron/tick", "schedule": "0 3 * * *" },
     { "path": "/api/insights?post=slack", "schedule": "30 2 * * *" }
   ]
 }
