@@ -118,6 +118,13 @@ export function fixtureOrders(window: DateWindow): OrderRow[] {
 
 export interface FunnelStepDef {
   step: string;
+  /**
+   * The GA4 `event_name` this step matches, when it differs from `step`.
+   * Companion fires custom event names (e.g. `payment_success`), so the internal
+   * step key stays stable for the metric layer while the connector matches the
+   * real event.
+   */
+  eventName?: string;
   label: string;
   order: number;
   /** Conversion from the previous step. */
@@ -142,8 +149,9 @@ export const FUNNEL_STEPS: FunnelStepDef[] = [
   { step: 'view_cart', label: 'Cart viewed', order: 7, ratio: 0.72, instrumented: true, confirmed: 'verify' },
   { step: 'begin_checkout', label: 'Checkout begun', order: 8, ratio: 0.63, instrumented: true, confirmed: 'verify' },
   { step: 'add_payment_info', label: 'Payment info added', order: 9, ratio: 0.78, instrumented: true, confirmed: 'verify' },
-  { step: 'purchase', label: 'Purchase', order: 10, ratio: 0.9, instrumented: true, confirmed: 'verify' },
-  { step: 'invoice_detag', label: 'Invoice / de-tag', order: 11, ratio: 0.97, instrumented: false, confirmed: 'verify' },
+  // Companion fires `payment_success` (verified against analytics_524294430),
+  // not the GA4-standard `purchase` event. The funnel ends here.
+  { step: 'purchase', eventName: 'payment_success', label: 'Payment success', order: 10, ratio: 0.9, instrumented: true, confirmed: 'confirmed' },
 ];
 
 export interface FunnelRow {

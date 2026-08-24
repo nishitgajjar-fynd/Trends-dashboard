@@ -181,7 +181,9 @@ export class BqGa4EventsConnector extends BaseConnector<RawFunnelRow, FunnelRow>
   }
 
   protected transform(rows: RawFunnelRow[]): FunnelRow[] {
-    const stepByEvent = new Map(FUNNEL_STEPS.map((s) => [s.step, s]));
+    // Match on the real GA4 event name (`eventName`) when a step declares one —
+    // Companion's terminal step is the `payment_success` event, not `purchase`.
+    const stepByEvent = new Map(FUNNEL_STEPS.map((s) => [s.eventName ?? s.step, s]));
     const out: FunnelRow[] = [];
     const seenSteps = new Set<string>();
 
