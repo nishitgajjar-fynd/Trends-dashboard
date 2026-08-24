@@ -95,14 +95,28 @@ export class SheetsStoreMasterConnector extends BaseConnector<SheetRow, FixtureS
 
   protected async extract(): Promise<SheetRow[]> {
     if (isGcpConfigured() && config.sheetStoreMasterId) {
-      const token = await getAccessToken();
-      const url = `https://sheets.googleapis.com/v4/spreadsheets/${config.sheetStoreMasterId}/values/A:Z?valueRenderOption=UNFORMATTED_VALUE&dateTimeRenderOption=FORMATTED_STRING`;
-      const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
-      if (!res.ok) throw new Error(`Sheets ${res.status}: ${await res.text()}`);
-      const body = (await res.json()) as { values?: unknown[][] };
-      return (body.values ?? []).map((row) => ({ values: row.map((c) => String(c ?? '')) }));
+      try {
+        const token = await getAccessToken();
+        const url = `https://sheets.googleapis.com/v4/spreadsheets/${config.sheetStoreMasterId}/values/A:Z?valueRenderOption=UNFORMATTED_VALUE&dateTimeRenderOption=FORMATTED_STRING`;
+        const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+        if (!res.ok) throw new Error(`Sheets ${res.status}: ${await res.text()}`);
+        const body = (await res.json()) as { values?: unknown[][] };
+        return (body.values ?? []).map((row) => ({ values: row.map((c) => String(c ?? '')) }));
+      } catch (e) {
+        // §19.5 / RUNBOOK — the Sheets API can be unavailable (personal ADC has
+        // no Sheets scope, or the sheet isn't shared). Fall back to the Appendix
+        // A.2 CSV export if one is present, rather than failing the whole store
+        // dimension — everything store-level depends on it.
+        if (!this.hasLocalCsv()) throw e;
+        this.headerWarnings.push(
+          `Sheets API unavailable (${(e as Error).message.slice(0, 80)}) — served from docs/source/store_master.csv`,
+        );
+      }
     }
+    return this.readCsv();
+  }
 
+  private readCsv(): SheetRow[] {
     const csv = readFileSync(this.csvPath(), 'utf8');
     return csv
       .split(/\r?\n/)

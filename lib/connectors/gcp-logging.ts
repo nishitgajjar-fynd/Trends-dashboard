@@ -60,6 +60,11 @@ export class GcpLoggingConnector extends BaseConnector<ErrorLogDaily, ErrorLogDa
     url.searchParams.set('aggregation.perSeriesAligner', 'ALIGN_SUM');
 
     const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+    // §23.2 — the log-based counter metric is the cheap path, but it has to be
+    // created in the project first. Until it exists (404 = metric not found),
+    // fall back to counting ERROR entries via the Logging API directly, which
+    // only needs Logging Viewer. Slower, but it means the card is live now.
+    if (res.status === 404) return this.countViaLogging(token, w);
     if (!res.ok) throw new Error(`Cloud Monitoring ${res.status}: ${await res.text()}`);
     const body = (await res.json()) as {
       timeSeries?: Array<{ points?: Array<{ interval: { endTime: string }; value: { int64Value?: string } }> }>;
@@ -72,6 +77,35 @@ export class GcpLoggingConnector extends BaseConnector<ErrorLogDaily, ErrorLogDa
         byDay.set(dateKey, (byDay.get(dateKey) ?? 0) + Number(p.value.int64Value ?? 0));
       }
     }
+    return [...byDay.entries()].map(([dateKey, errorCount]) => ({ dateKey, errorCount }));
+  }
+
+  /** Fallback: count ERROR log entries by day via entries.list (bounded pages). */
+  private async countViaLogging(token: string, w: DateWindow): Promise<ErrorLogDaily[]> {
+    const filter = `${LOG_FILTER}\ntimestamp>="${w.start}T00:00:00Z"\ntimestamp<="${w.end}T23:59:59Z"`;
+    const byDay = new Map<string, number>();
+    let pageToken: string | undefined;
+    let pages = 0;
+    do {
+      const res = await fetch('https://logging.googleapis.com/v2/entries:list', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          resourceNames: [`projects/${config.gcpProjectId}`],
+          filter,
+          pageSize: 1000,
+          pageToken,
+        }),
+      });
+      if (!res.ok) throw new Error(`Cloud Logging ${res.status}: ${await res.text()}`);
+      const body = (await res.json()) as { entries?: Array<{ timestamp?: string }>; nextPageToken?: string };
+      for (const e of body.entries ?? []) {
+        const dateKey = String(e.timestamp ?? '').slice(0, 10);
+        if (dateKey) byDay.set(dateKey, (byDay.get(dateKey) ?? 0) + 1);
+      }
+      pageToken = body.nextPageToken;
+      pages += 1;
+    } while (pageToken && pages < 15); // cap ~15k entries; a floor on very noisy days
     return [...byDay.entries()].map(([dateKey, errorCount]) => ({ dateKey, errorCount }));
   }
 

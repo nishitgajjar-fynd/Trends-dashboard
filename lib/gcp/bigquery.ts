@@ -93,6 +93,14 @@ function decodeRows<T>(schema: { fields?: Array<{ name: string; type: string }> 
         out[field.name] = Number(v);
       } else if (['BOOLEAN', 'BOOL'].includes(field.type)) {
         out[field.name] = v === 'true' || v === true;
+      } else if (field.type === 'TIMESTAMP') {
+        // BigQuery's REST API returns TIMESTAMP as epoch **seconds** in a string
+        // (e.g. "1686847981.0"), not an ISO date. `new Date()` on that is invalid
+        // ("Invalid time value"), so normalise to an ISO string the connectors
+        // can parse. Fixtures carry ISO strings already; this only affects live
+        // BigQuery reads.
+        const secs = Number(v);
+        out[field.name] = Number.isFinite(secs) ? new Date(secs * 1000).toISOString() : v;
       } else {
         out[field.name] = v;
       }

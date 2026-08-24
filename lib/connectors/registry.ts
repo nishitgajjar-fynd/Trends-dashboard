@@ -21,6 +21,7 @@ import { bqGa4Events } from './bq-ga4-events';
 import { bqGa4Scans } from './bq-ga4-scans';
 import { bqGa4Journeys } from './bq-ga4-journeys';
 import { bqCatalogueMaster } from './bq-catalogue-master';
+import { bqCatalogueHealth } from './bq-catalogue-health';
 import { catalogueGapRegister } from './catalogue-gap-register';
 import { sentry } from './sentry';
 import { jira } from './jira';
@@ -52,6 +53,10 @@ export const CONNECTORS: BaseConnector<any, any>[] = [
   // discovered rather than declared (ADR-005).
   bqGa4Journeys,
   bqCatalogueMaster,
+  // Catalogue *completeness* (attributes/media/on-platform) from the
+  // sng-prod.catalogue_health summary tables — a different measurement from
+  // scan-observed coverage, never blended with it (§16.5.2).
+  bqCatalogueHealth,
   // Derived in Postgres from the two above — no credential of its own.
   catalogueGapRegister,
   sentry,

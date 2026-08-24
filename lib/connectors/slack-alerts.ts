@@ -138,6 +138,7 @@ export class SlackAlertsConnector extends BaseConnector<RawAlert, IssueRow> {
           title: titleFor(parsed),
           priority: severityOf(parsed),
           status: parsed.state === 'Resolved' ? 'Done' : 'To Do',
+          isDone: parsed.state === 'Resolved',
           workstream: 'Platform & Infra',
           journeyStep: classifyJourneyStep(`${parsed.errorType} ${parsed.endpoint ?? ''} ${parsed.message}`),
           storeCode: null,
@@ -162,6 +163,7 @@ export class SlackAlertsConnector extends BaseConnector<RawAlert, IssueRow> {
           title: a.text.slice(0, 180),
           priority: /p0|critical|down|outage/i.test(a.text) ? 'P0' : ('P2' as IssueRow['priority']),
           status: 'To Do',
+          isDone: false,
           workstream: 'Store Ops',
           journeyStep: classifyJourneyStep(a.text),
           storeCode,
@@ -200,6 +202,7 @@ export class SlackAlertsConnector extends BaseConnector<RawAlert, IssueRow> {
           title: r.title,
           priority: r.priority,
           status: r.status,
+          isDone: r.isDone,
           workstream: r.workstream,
           journeyStep: r.journeyStep,
           storeCode: r.storeCode,
@@ -211,7 +214,7 @@ export class SlackAlertsConnector extends BaseConnector<RawAlert, IssueRow> {
       )
       .onConflictDoUpdate({
         target: factIssues.issueKey,
-        set: { title: sql`excluded.title`, status: sql`excluded.status` },
+        set: { title: sql`excluded.title`, status: sql`excluded.status`, isDone: sql`excluded.is_done` },
       });
     return { rowsIngested: rows.length, table: 'fact_issues' };
   }

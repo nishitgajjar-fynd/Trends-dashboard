@@ -42,7 +42,9 @@ export interface OrderRow {
  * working mapping; `statusConfirmed` records which side of it a row fell on so
  * the UI can show both figures and label the ambiguity rather than pick one.
  */
-export const CONFIRMED_STATUSES = ['delivered', 'complete', 'confirmed', 'invoiced'];
+// 'handed_over_to_customer' is the real avis_base_view completed status (A3,
+// confirmed against the live view 2026-08-21); the others are fixture statuses.
+export const CONFIRMED_STATUSES = ['handed_over_to_customer', 'delivered', 'complete', 'confirmed', 'invoiced'];
 export const UNCONFIRMED_STATUSES = ['cancelled', 'returned', 'payment_failed', 'pending'];
 
 const PAYMENT_METHODS = ['UPI', 'Card', 'JioOnePay Wallet', 'Netbanking', 'COD'];
@@ -295,6 +297,8 @@ export interface IssueRow {
   title: string;
   priority: 'P0' | 'P1' | 'P2' | 'P3';
   status: string;
+  /** From the tracker's done category, not a literal status-name match. */
+  isDone: boolean;
   workstream: string;
   journeyStep: string | null;
   storeCode: string | null;
@@ -346,6 +350,7 @@ export function fixtureIssues(): IssueRow[] {
       title,
       priority: priority as IssueRow['priority'],
       status: resolved ? 'Done' : rng() < 0.5 ? 'In Progress' : 'To Do',
+      isDone: resolved,
       workstream: WORKSTREAMS.includes(workstream as (typeof WORKSTREAMS)[number])
         ? workstream
         : 'Platform & Infra',

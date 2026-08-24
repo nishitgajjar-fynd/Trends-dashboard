@@ -177,6 +177,10 @@ export class JiraConnector extends BaseConnector<JiraIssue, IssueRow> {
         title: i.fields.summary,
         priority: mapPriority(i.fields.priority?.name),
         status: i.fields.status?.name ?? 'To Do',
+        // The reliable done signal across a custom workflow (Closed, Released on
+        // PROD, Rejected… all have statusCategory 'done'); a status-name match
+        // would miss them and `resolutiondate` is set on only ~17% of them.
+        isDone: i.fields.status?.statusCategory?.key === 'done',
         workstream,
         journeyStep: classifyJourneyStep(i.fields.summary, i.fields.labels),
         storeCode: null,
@@ -203,6 +207,7 @@ export class JiraConnector extends BaseConnector<JiraIssue, IssueRow> {
           title: r.title,
           priority: r.priority,
           status: r.status,
+          isDone: r.isDone,
           workstream: r.workstream,
           journeyStep: r.journeyStep,
           storeCode: r.storeCode,
@@ -216,6 +221,7 @@ export class JiraConnector extends BaseConnector<JiraIssue, IssueRow> {
         target: factIssues.issueKey,
         set: {
           status: sql`excluded.status`,
+          isDone: sql`excluded.is_done`,
           priority: sql`excluded.priority`,
           assignee: sql`excluded.assignee`,
           resolvedAt: sql`excluded.resolved_at`,

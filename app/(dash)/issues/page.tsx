@@ -13,7 +13,7 @@ export const dynamic = 'force-dynamic';
 export default async function IssuesPage() {
   const mod = await issuesModule();
   const { rows, byWorkstream, byJourneyStep } = mod.data;
-  const open = rows.filter((i) => i.status !== 'Done');
+  const open = rows.filter((i) => !i.isDone);
 
   const cols: Column<(typeof rows)[number]>[] = [
     {

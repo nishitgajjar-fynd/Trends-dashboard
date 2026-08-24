@@ -650,21 +650,23 @@ export interface IssueLike {
   issueKey: string;
   priority: string;
   status: string;
+  /** From Jira statusCategory — the reliable "done" signal (see fact_issues). */
+  isDone: boolean;
   assignee: string | null;
   createdAt: string;
   resolvedAt: string | null;
 }
 
 export const issues = {
-  p0Open: (xs: IssueLike[]) => xs.filter((i) => i.priority === 'P0' && i.status !== 'Done').length,
-  p1Open: (xs: IssueLike[]) => xs.filter((i) => i.priority === 'P1' && i.status !== 'Done').length,
+  p0Open: (xs: IssueLike[]) => xs.filter((i) => i.priority === 'P0' && !i.isDone).length,
+  p1Open: (xs: IssueLike[]) => xs.filter((i) => i.priority === 'P1' && !i.isDone).length,
   p0AgeP50: (xs: IssueLike[], now = Date.now()) =>
     median(
       xs
-        .filter((i) => i.priority === 'P0' && i.status !== 'Done')
+        .filter((i) => i.priority === 'P0' && !i.isDone)
         .map((i) => (now - Date.parse(i.createdAt)) / 86_400_000),
     ),
-  unowned: (xs: IssueLike[]) => xs.filter((i) => i.status !== 'Done' && !i.assignee).length,
+  unowned: (xs: IssueLike[]) => xs.filter((i) => !i.isDone && !i.assignee).length,
   openCloseRatio: (xs: IssueLike[], now = Date.now()) => {
     const cutoff = now - 7 * 86_400_000;
     const opened = xs.filter((i) => Date.parse(i.createdAt) >= cutoff).length;

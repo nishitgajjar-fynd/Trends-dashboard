@@ -370,6 +370,14 @@ export const factIssues = pgTable('fact_issues', {
   title: text('title').notNull(),
   priority: text('priority'),
   status: text('status'),
+  /**
+   * Whether the tracker considers the issue done — from Jira's `statusCategory`
+   * (todo/indeterminate/done), the only cross-workflow-reliable signal. A literal
+   * `status = 'Done'` check misses `Closed`, `Released on PROD`, `Rejected`…, and
+   * `resolutiondate` is only set on ~17% of closed issues here, so neither is
+   * trustworthy for "open" — this flag is.
+   */
+  isDone: boolean('is_done').notNull().default(false),
   workstream: text('workstream'),
   journeyStep: text('journey_step'),
   storeCode: text('store_code'),
@@ -582,7 +590,39 @@ export const dimGapReason = pgTable('dim_gap_reason', {
   sortOrder: integer('sort_order').notNull().default(100),
 });
 
+/**
+ * §5.4 — Catalogue *completeness* (distinct from scan-observed coverage).
+ *
+ * Sourced from the `sng-prod.catalogue_health` dataset (Geckoboard-style summary
+ * tables). One row per (snapshot day × pipeline): OVERALL / SAP / AJIO CE. The
+ * per-attribute fill rates and the quality-issue list are carried as jsonb rather
+ * than their own tables — they are small, always read together with the summary,
+ * and never joined on.
+ */
+export const factCatalogueHealth = pgTable(
+  'fact_catalogue_health',
+  {
+    snapshotDate: date('snapshot_date').notNull(),
+    pipeline: text('pipeline').notNull(), // OVERALL | SAP | AJIO CE
+    totalCatalog: bigint('total_catalog', { mode: 'number' }),
+    completeCatalog: bigint('complete_catalog', { mode: 'number' }),
+    missingCatalog: bigint('missing_catalog', { mode: 'number' }),
+    /** Ratios 0–1, so they render like every other §5 ratio. */
+    completionPct: numeric('completion_pct', { precision: 6, scale: 4 }),
+    fillRatePct: numeric('fill_rate_pct', { precision: 6, scale: 4 }),
+    mediaCoveragePct: numeric('media_coverage_pct', { precision: 6, scale: 4 }),
+    /** [{attribute, fillRate (0–1), missing}] — per attribute, this pipeline. */
+    attributes: jsonb('attributes'),
+    /** [{metric, value}] — quality issues; populated on the OVERALL row only. */
+    quality: jsonb('quality'),
+    snapshotAt: timestamp('snapshot_at', { withTimezone: true }),
+    source: text('_source').notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.snapshotDate, t.pipeline] })],
+);
+
 export const schema = {
+  factCatalogueHealth,
   factCatalogueDefect,
   dimStore,
   dimProduct,

@@ -1,6 +1,7 @@
 /** §4.5 — Catalogue Health. */
-import { catalogueModule } from '@/lib/services/modules';
+import { catalogueModule, catalogueHealthData } from '@/lib/services/modules';
 import { KpiStrip } from '@/components/kpi/KpiCard';
+import { StatePill } from '@/components/data-state';
 import { ManhattanChart } from '@/components/charts/ManhattanChart';
 import { TrendLine } from '@/components/charts/TrendLine';
 import { Column, DataTable, ModuleHeader } from '@/components/table/DataTable';
@@ -20,11 +21,12 @@ export default async function CataloguePage({ searchParams }: { searchParams: Pr
   // §18.7's backfill window is the default here: it is the range the catalogue
   // baseline is stated for, so an unfiltered load reproduces a known number.
   const filters = raw.start || raw.end ? parseFilters(raw, 14) : { ...parseFilters(raw, 14), window: { start: '2026-07-30', end: '2026-08-12' } };
-  const [mod, t, strip, options] = await Promise.all([
+  const [mod, t, strip, options, health] = await Promise.all([
     catalogueModule(filters),
     getThresholds(),
     getScanStrip(),
     getFilterOptions(),
+    catalogueHealthData(),
   ]);
   const {
     daily,
@@ -169,6 +171,92 @@ export default async function CataloguePage({ searchParams }: { searchParams: Pr
             </div>
           ))}
         </div>
+      </section>
+
+      {/* §5.4b — catalogue completeness (catalogue_health). A different question
+          from scan coverage: is the product record itself complete. Kept in its
+          own section so the two are never read as the same number. */}
+      <section className="rounded border border-[var(--color-edge)] bg-[var(--surface)] p-4">
+        <div className="mb-1 flex items-center gap-2">
+          <h2 className="label">Catalogue completeness</h2>
+          {health.state !== 'live' && <StatePill state={health.state} />}
+        </div>
+        <p className="mb-3 text-2xs text-[var(--text-muted)]">
+          Not &ldquo;did a scan resolve&rdquo; but &ldquo;is the record complete&rdquo; — attributes
+          filled, image present, on platform. Source: {health.source}.
+        </p>
+
+        <KpiStrip metrics={health.kpis} />
+
+        <div className="mt-4 grid gap-4 lg:grid-cols-2">
+          <figure className="rounded border border-[var(--color-edge)] p-3">
+            <figcaption className="label mb-2">Completeness by pipeline</figcaption>
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="text-2xs text-[var(--text-muted)]">
+                  <th className="label py-1 text-left">Pipeline</th>
+                  <th className="label py-1 text-right">Records</th>
+                  <th className="label py-1 text-right">Complete</th>
+                  <th className="label py-1 text-right">Media</th>
+                </tr>
+              </thead>
+              <tbody>
+                {health.pipelines.map((p) => (
+                  <tr key={p.pipeline} className="border-t border-[var(--color-edge)]">
+                    <td className="py-1">{p.pipeline}</td>
+                    <td className="num py-1 text-right">{formatCount(p.totalCatalog)}</td>
+                    <td className="num py-1 text-right">{formatPct(p.completionPct, { precision: 1 })}</td>
+                    <td className="num py-1 text-right">{formatPct(p.mediaCoveragePct, { precision: 1 })}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <p className="mt-2 text-2xs text-[var(--text-muted)]">
+              SAP is the full estate master; AJIO CE is the curated, near-complete slice.
+            </p>
+          </figure>
+
+          <figure className="rounded border border-[var(--color-edge)] p-3">
+            <figcaption className="label mb-2">Worst-filled attributes (overall)</figcaption>
+            <ul className="space-y-2">
+              {health.attributes.slice(0, 6).map((a) => (
+                <li key={a.attribute} className="grid grid-cols-[8rem_1fr_3rem] items-center gap-3">
+                  <span className="truncate text-xs" title={a.attribute}>
+                    {a.attribute}
+                  </span>
+                  <div className="h-3 overflow-hidden rounded-sm bg-[var(--color-ink)]">
+                    <div
+                      className="h-full"
+                      style={{
+                        width: `${Math.max(a.fillRate * 100, 1)}%`,
+                        background: a.fillRate < 0.3 ? 'var(--color-alert)' : 'var(--color-ion)',
+                      }}
+                    />
+                  </div>
+                  <span className="num text-right text-xs">{formatPct(a.fillRate, { precision: 0 })}</span>
+                </li>
+              ))}
+            </ul>
+          </figure>
+        </div>
+
+        {health.quality.length > 0 && (
+          <div className="mt-4 border-t border-[var(--color-edge)] pt-3">
+            <div className="label mb-2">Quality issues</div>
+            <div className="flex flex-wrap gap-2">
+              {health.quality
+                .filter((q) => q.value > 0)
+                .map((q) => (
+                  <span
+                    key={q.metric}
+                    className="rounded border border-[var(--color-edge)] px-2 py-1 text-2xs"
+                  >
+                    {q.metric}: <span className="num text-[var(--color-warn)]">{formatCount(q.value)}</span>
+                  </span>
+                ))}
+            </div>
+          </div>
+        )}
       </section>
 
       <ManhattanChart

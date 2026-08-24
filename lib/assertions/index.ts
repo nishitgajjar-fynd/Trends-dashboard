@@ -34,7 +34,7 @@ export function freshness<T>(opts: {
   return {
     id: `freshness:${opts.column}`,
     level,
-    run(rows) {
+    run(rows, ctx: AssertionContext) {
       if (rows.length === 0) {
         return { id: `freshness:${opts.column}`, level, message: 'No rows to check freshness on' };
       }
@@ -46,7 +46,15 @@ export function freshness<T>(opts: {
       if (!Number.isFinite(newest)) {
         return { id: `freshness:${opts.column}`, level, message: `Unparseable ${opts.column}` };
       }
-      const lagHours = minutesSince(new Date(newest).toISOString()) / 60;
+      // Measured against the **window end**, not `now`: a backfill of a historical
+      // window is legitimately old, but the feed within that window must still be
+      // current up to its end. For an incremental run window.end ≈ now, so a
+      // silently-stopped feed is still caught. Clamped at 0 so a window ending
+      // today (reference in the future) never reads as negative lag.
+      const refMs = ctx?.window?.end
+        ? Date.parse(`${ctx.window.end}T23:59:59+05:30`)
+        : Date.now();
+      const lagHours = Math.max(0, (refMs - newest) / 3_600_000);
       if (lagHours > opts.maxLagHours) {
         return {
           id: `freshness:${opts.column}`,

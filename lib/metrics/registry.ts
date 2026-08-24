@@ -557,6 +557,59 @@ export const METRICS = {
     cadence: 'Poll every 30 min',
   },
 
+  /* §5.4b — catalogue *completeness* (from sng-prod.catalogue_health). A
+     different question from scan coverage: not "did a scan resolve" but "is the
+     product record complete — attributes filled, image present, on platform". */
+  catalogue_completion: {
+    id: 'catalogue_completion',
+    label: 'Catalogue completeness',
+    domain: 'catalogue',
+    unit: 'ratio',
+    direction: 'up_good',
+    formula: 'complete_catalog / total_catalog',
+    source: 'catalogue_health.geckoboard_summary_v2 (bq-catalogue-health)',
+    grain: 'window',
+    description:
+      'Share of catalogue records that are complete — every key attribute and a primary image present. Distinct from scan-observed coverage; this is about the record, not the scan.',
+    cadence: 'Daily snapshot',
+  },
+  catalogue_fill_rate: {
+    id: 'catalogue_fill_rate',
+    label: 'Attribute fill rate',
+    domain: 'catalogue',
+    unit: 'ratio',
+    direction: 'up_good',
+    formula: 'mean attribute fill rate across the catalogue',
+    source: 'catalogue_health.geckoboard_summary_v2 (bq-catalogue-health)',
+    grain: 'window',
+    description: 'On average, how much of each product record is filled in.',
+    cadence: 'Daily snapshot',
+  },
+  catalogue_media_coverage: {
+    id: 'catalogue_media_coverage',
+    label: 'Media coverage',
+    domain: 'catalogue',
+    unit: 'ratio',
+    direction: 'up_good',
+    formula: 'products_with_images / total_catalog',
+    source: 'catalogue_health.media_health_v2 (bq-catalogue-health)',
+    grain: 'window',
+    description: 'Share of products that carry at least one image.',
+    cadence: 'Daily snapshot',
+  },
+  catalogue_missing_records: {
+    id: 'catalogue_missing_records',
+    label: 'Incomplete records',
+    domain: 'catalogue',
+    unit: 'count',
+    direction: 'down_good',
+    formula: 'total_catalog − complete_catalog',
+    source: 'catalogue_health.geckoboard_summary_v2 (bq-catalogue-health)',
+    grain: 'window',
+    description: 'How many catalogue records are still missing required attributes or media.',
+    cadence: 'Daily snapshot',
+  },
+
   /* ── §5.6 App / tech health ────────────────────────────────────────── */
   crash_free_rate: {
     id: 'crash_free_rate',

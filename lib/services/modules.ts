@@ -37,6 +37,7 @@ import {
 import {
   getAppHealth,
   getCatalogueDaily,
+  getCatalogueHealth,
   getEventNodes,
   getFunnel,
   getGaps,
@@ -57,6 +58,7 @@ import {
   type DateWindow,
 } from '@/lib/format/dates';
 import { FUNNEL_STEPS } from '@/fixtures/business';
+import type { CatalogueHealthRow } from '@/fixtures/catalogue-health';
 import type { DataSourceState } from '@/lib/connectors/types';
 import {
   COMPARE_LABELS,
@@ -653,6 +655,47 @@ export async function storesModule(input: ModuleInput = trailingWindow(28)): Pro
   };
 }
 
+/* ── /catalogue — completeness (§5.4b) ─────────────────────────────────────── */
+
+export interface CatalogueHealthResult {
+  kpis: MetricValue[];
+  overall: CatalogueHealthRow | null;
+  pipelines: CatalogueHealthRow[];
+  attributes: CatalogueHealthRow['attributes'];
+  quality: CatalogueHealthRow['quality'];
+  source: string;
+  state: DataSourceState;
+}
+
+/**
+ * Catalogue *completeness* KPIs + detail, from `catalogue_health`. Kept separate
+ * from `catalogueModule` (scan-observed coverage) so the two measurements are
+ * never blended (§16.5.2) — they answer different questions.
+ */
+export async function catalogueHealthData(): Promise<CatalogueHealthResult> {
+  const h = await getCatalogueHealth();
+  const rows = h.rows;
+  const overall = rows.find((r) => r.pipeline === 'OVERALL') ?? rows[0] ?? null;
+  const meta = { state: h.state, fetchedAt: h.fetchedAt, sourceOverride: h.source };
+  const kpis: MetricValue[] = overall
+    ? [
+        metricValue('catalogue_completion', overall.completionPct, meta),
+        metricValue('catalogue_fill_rate', overall.fillRatePct, meta),
+        metricValue('catalogue_media_coverage', overall.mediaCoveragePct, meta),
+        metricValue('catalogue_missing_records', overall.missingCatalog, meta),
+      ]
+    : [];
+  return {
+    kpis,
+    overall,
+    pipelines: rows,
+    attributes: overall?.attributes ?? [],
+    quality: overall?.quality ?? [],
+    source: h.source,
+    state: h.state,
+  };
+}
+
 /* ── /catalogue ──────────────────────────────────────────────────────────── */
 
 export interface CatalogueData {
@@ -979,7 +1022,7 @@ export async function issuesModule(): Promise<ModuleResult<IssuesData>> {
     metricValue('open_close_ratio', issueMetrics.openCloseRatio(issues.rows), meta),
   ];
 
-  const open = issues.rows.filter((i) => i.status !== 'Done');
+  const open = issues.rows.filter((i) => !i.isDone);
   const wsMap = new Map<string, { open: number; p0: number }>();
   for (const i of open) {
     const cur = wsMap.get(i.workstream) ?? { open: 0, p0: 0 };

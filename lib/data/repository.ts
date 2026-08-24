@@ -19,7 +19,9 @@ import {
   factApiLatency,
   factJourneyPath,
   factEventNode,
+  factCatalogueHealth,
 } from '@/lib/db/schema';
+import { fixtureCatalogueHealth, type CatalogueHealthRow } from '@/fixtures/catalogue-health';
 import type { EventNode, JourneyPath } from '@/lib/metrics/journeys';
 import { fixtureEventNodes, fixtureJourneyPaths } from '@/fixtures/journeys';
 import type { DataSourceState } from '@/lib/connectors/types';
@@ -317,6 +319,37 @@ export async function getCatalogueDaily(w: DateWindow): Promise<Sourced<Catalogu
   );
 }
 
+export async function getCatalogueHealth(): Promise<Sourced<CatalogueHealthRow[]>> {
+  return tryLive(
+    async () => {
+      const db = getDb()!;
+      const rows = await db.select().from(factCatalogueHealth);
+      if (rows.length === 0) return [];
+      // The mart keeps history; the page wants the most recent snapshot only.
+      const latest = rows.reduce((m, r) => (r.snapshotDate > m ? r.snapshotDate : m), rows[0].snapshotDate);
+      return rows
+        .filter((r) => r.snapshotDate === latest)
+        .map((r) => ({
+          snapshotDate: r.snapshotDate,
+          pipeline: r.pipeline,
+          totalCatalog: r.totalCatalog ?? 0,
+          completeCatalog: r.completeCatalog ?? 0,
+          missingCatalog: r.missingCatalog ?? 0,
+          completionPct: Number(r.completionPct ?? 0),
+          fillRatePct: Number(r.fillRatePct ?? 0),
+          mediaCoveragePct: Number(r.mediaCoveragePct ?? 0),
+          attributes: (r.attributes as CatalogueHealthRow['attributes']) ?? [],
+          quality: (r.quality as CatalogueHealthRow['quality']) ?? [],
+          snapshotAt: r.snapshotAt ? r.snapshotAt.toISOString() : null,
+        }));
+    },
+    'fact_catalogue_health (bq-catalogue-health)',
+    () => fixtureCatalogueHealth(),
+    'fixture: catalogue_health snapshot',
+    ['bq-catalogue-health'],
+  );
+}
+
 export async function getGaps(w: DateWindow): Promise<Sourced<GapRow[]>> {
   return tryLive(
     async () => {
@@ -448,6 +481,7 @@ export async function getIssues(): Promise<Sourced<IssueRow[]>> {
         title: r.title,
         priority: (r.priority ?? 'P3') as IssueRow['priority'],
         status: r.status ?? 'To Do',
+        isDone: r.isDone ?? false,
         workstream: r.workstream ?? 'Platform & Infra',
         journeyStep: r.journeyStep,
         storeCode: r.storeCode,

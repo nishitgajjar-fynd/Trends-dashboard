@@ -28,11 +28,42 @@ import type { Assertion, CostTier, LoadResult } from './types';
  * stays an array for query hygiene but is passed exactly one value — the prod
  * affiliate id. Widening it is a scope violation (§0).
  */
+/**
+ * A1/§15.3 (resolved 2026-08-21, verified against the live view) — `avis_base_view`
+ * is at **bag/line-item grain**: one row per `bag_id`, many rows per `order_id`.
+ * A plain `SELECT *` therefore returns duplicate order ids and the uniqueness
+ * assertion (correctly) hard-fails. We aggregate to order grain here, reproducing
+ * the figures confirmed by hand against the view (≈11,032 orders, ₹923 AOV):
+ *
+ *   - revenue  = SUM(billed_amount)  → grossValue (net of nothing further; A3)
+ *   - units    = SUM(quantity)
+ *   - grain    = one row per order_id
+ *
+ * Assumptions still to confirm with the Avis owner and record in ADR-000:
+ *   - completed order = a bag in status 'handed_over_to_customer' (the basis the
+ *     existing reporting uses). Only completed orders are loaded here; the
+ *     inclusive/all-status variant (A3) waits on the full status enum.
+ *   - discounts/coupons are NOT broken out yet (`billed_amount` is taken as the
+ *     revenue figure as-is); the discount columns exist but their exact meaning
+ *     is unverified, so net_revenue == e-GMV until confirmed.
+ */
 export const ORDERS_SQL = `
-SELECT *
+SELECT
+  order_id,
+  ANY_VALUE(affiliate_id)                 AS affiliate_id,
+  ANY_VALUE(state_date)                   AS state_date,
+  ANY_VALUE(status)                       AS status,
+  CAST(ANY_VALUE(store_id) AS STRING)     AS store_id,
+  CAST(ANY_VALUE(user_id) AS STRING)      AS customer_id,
+  ANY_VALUE(order_platform)               AS platform,
+  ANY_VALUE(mode_of_payment)              AS payment_method,
+  SUM(quantity)                           AS quantity,
+  ROUND(SUM(billed_amount), 2)            AS gross_value
 FROM \`${config.bqOrdersTable}\`
 WHERE DATE(state_date, 'Asia/Kolkata') BETWEEN @start_date AND @end_date
   AND affiliate_id IN UNNEST(@affiliate_ids)
+  AND status = 'handed_over_to_customer'
+GROUP BY order_id
 `.trim();
 
 /** §15.3 — schema discovery. Phase 2 step one, before writing any mapping. */

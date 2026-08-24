@@ -238,7 +238,7 @@ export async function hubData(): Promise<HubData> {
     metrics: [...sales.kpis, ...journey.kpis, ...stores.kpis, ...catalogue.kpis, ...appHealth.kpis, ...issues.kpis],
     anomalies,
     openP0: issues.data.rows
-      .filter((i) => i.priority === 'P0' && i.status !== 'Done')
+      .filter((i) => i.priority === 'P0' && !i.isDone)
       .slice(0, 10)
       .map((i) => ({
         key: i.issueKey,
@@ -296,7 +296,7 @@ export async function hubData(): Promise<HubData> {
       .filter((a) => a.severity === 'act' && !a.suppressed)
       .map((a) => ({ title: a.label, detail: a.magnitude, href: '/insights', severity: 'act' as const })),
     ...issues.data.rows
-      .filter((i) => i.priority === 'P0' && i.status !== 'Done')
+      .filter((i) => i.priority === 'P0' && !i.isDone)
       .slice(0, 3)
       .map((i) => ({
         title: `${i.issueKey} — ${i.title}`,

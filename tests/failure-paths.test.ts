@@ -273,8 +273,8 @@ describe('Jira mapping and dedupe', () => {
 
   it('keeps every source’s provenance when merging duplicates', () => {
     const merged = dedupeIssues([
-      { issueKey: 'NI-1726', source: 'jira', title: 'Apply promotion times out on carts', priority: 'P1', status: 'To Do', workstream: 'Payments & Coupons', journeyStep: null, storeCode: null, assignee: null, createdAt: '2026-08-01T00:00:00Z', resolvedAt: null, url: '' },
-      { issueKey: 'SLACK-x', source: 'slack_noc', title: 'Apply promotion times out on carts!', priority: 'P1', status: 'To Do', workstream: 'Payments & Coupons', journeyStep: null, storeCode: null, assignee: null, createdAt: '2026-08-01T00:00:00Z', resolvedAt: null, url: '' },
+      { issueKey: 'NI-1726', source: 'jira', title: 'Apply promotion times out on carts', priority: 'P1', status: 'To Do', isDone: false, workstream:'Payments & Coupons', journeyStep: null, storeCode: null, assignee: null, createdAt: '2026-08-01T00:00:00Z', resolvedAt: null, url: '' },
+      { issueKey: 'SLACK-x', source: 'slack_noc', title: 'Apply promotion times out on carts!', priority: 'P1', status: 'To Do', isDone: false, workstream:'Payments & Coupons', journeyStep: null, storeCode: null, assignee: null, createdAt: '2026-08-01T00:00:00Z', resolvedAt: null, url: '' },
     ]);
     expect(merged).toHaveLength(1);
     // Merging is a display convenience, not a claim they are the same record.
@@ -283,8 +283,8 @@ describe('Jira mapping and dedupe', () => {
 
   it('does not merge genuinely different issues', () => {
     const merged = dedupeIssues([
-      { issueKey: 'NI-1', source: 'jira', title: 'Payment gateway timeout', priority: 'P0', status: 'To Do', workstream: 'x', journeyStep: null, storeCode: null, assignee: null, createdAt: '2026-08-01T00:00:00Z', resolvedAt: null, url: '' },
-      { issueKey: 'NI-2', source: 'jira', title: 'QR poster missing at store', priority: 'P2', status: 'To Do', workstream: 'y', journeyStep: null, storeCode: null, assignee: null, createdAt: '2026-08-01T00:00:00Z', resolvedAt: null, url: '' },
+      { issueKey: 'NI-1', source: 'jira', title: 'Payment gateway timeout', priority: 'P0', status: 'To Do', isDone: false, workstream:'x', journeyStep: null, storeCode: null, assignee: null, createdAt: '2026-08-01T00:00:00Z', resolvedAt: null, url: '' },
+      { issueKey: 'NI-2', source: 'jira', title: 'QR poster missing at store', priority: 'P2', status: 'To Do', isDone: false, workstream:'y', journeyStep: null, storeCode: null, assignee: null, createdAt: '2026-08-01T00:00:00Z', resolvedAt: null, url: '' },
     ]);
     expect(merged).toHaveLength(2);
   });

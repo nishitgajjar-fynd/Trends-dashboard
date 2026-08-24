@@ -43,6 +43,12 @@ export const config = {
   bqCatalogueDataset: env('BQ_CATALOGUE_DATASET', 'rbl_catalog_structured_v7'),
   bqItemTable: env('BQ_ITEM_TABLE', 'sng-prod.orbis_pipe_dwh.item'),
   /**
+   * §5.4 — catalogue *completeness* dataset (Geckoboard summary tables). In
+   * `sng-prod`, so it is reachable with the same credential as orders — unlike
+   * the RBL master below, which lives in a different project.
+   */
+  bqCatalogueHealthDataset: env('BQ_CATALOGUE_HEALTH_DATASET', 'sng-prod.catalogue_health'),
+  /**
    * The Scan-and-Go catalogue — the EAN master this build spent a long time
    * looking for.
    *
