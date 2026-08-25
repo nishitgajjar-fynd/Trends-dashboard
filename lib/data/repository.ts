@@ -254,10 +254,10 @@ export async function getStores(): Promise<Sourced<FixtureStore[]>> {
         lon: r.lon == null ? null : Number(r.lon),
       }));
     },
-    'dim_store (sheets-store-master)',
+    'dim_store (bq-store-master)',
     () => FIXTURE_STORES,
-    'fixture: store master sheet shape',
-    ['sheets-store-master'],
+    'fixture: store master shape',
+    ['bq-store-master'],
   );
 }
 

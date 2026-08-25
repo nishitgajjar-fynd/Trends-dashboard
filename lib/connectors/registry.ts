@@ -13,7 +13,7 @@ import { lastRunFor } from './run-log';
 import type { ConnectorStatus } from './types';
 import type { BaseConnector } from './base';
 
-import { sheetsStoreMaster } from './sheets-store-master';
+import { bqStoreMaster } from './bq-store-master';
 import { slackCatalogueReport } from './slack-catalogue-report';
 import { slackCatalogueSyncReport } from './slack-catalogue-sync-report';
 import { bqOrders } from './bq-orders';
@@ -36,7 +36,7 @@ import { bqLoyalty } from './bq-loyalty';
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /** Build order from §30. The order here is the order shown on `/connectors`. */
 export const CONNECTORS: BaseConnector<any, any>[] = [
-  sheetsStoreMaster,
+  bqStoreMaster,
   slackCatalogueReport,
   // The defect half of the same hourly report. Separate because the grain
   // differs — one row a day versus one per (report, pipeline, error) — and one

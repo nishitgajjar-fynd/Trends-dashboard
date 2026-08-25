@@ -336,7 +336,7 @@ export const METRICS = {
     unit: 'count',
     direction: 'up_good',
     formula: 'distinct stores with Companion enabled (from store master)',
-    source: 'sheets-store-master → dim_store',
+    source: 'bq-store-master → dim_store',
     grain: 'day × store × state',
     description: 'Stores where Companion is switched on.',
     cadence: 'Daily 06:00 IST',

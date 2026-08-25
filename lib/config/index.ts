@@ -42,6 +42,11 @@ export const config = {
   bqCatalogueProject: env('BQ_CATALOGUE_PROJECT', 'fynd-jio-impetus-prod'),
   bqCatalogueDataset: env('BQ_CATALOGUE_DATASET', 'rbl_catalog_structured_v7'),
   bqItemTable: env('BQ_ITEM_TABLE', 'sng-prod.orbis_pipe_dwh.item'),
+  // §19 — the authoritative store master. Orbis CDC feed; `uid` matches the
+  // order/scan store_id namespace 1:1 (unlike sng_analytics_dwh.store_master).
+  bqStoreTable: env('BQ_STORE_TABLE', 'sng-prod.orbis_pipe_dwh.orbis_store'),
+  // company_id that scopes the store master to Reliance Trends.
+  bqStoreCompanyId: env('BQ_STORE_COMPANY_ID', '1'),
   /**
    * §5.4 — catalogue *completeness* dataset (Geckoboard summary tables). In
    * `sng-prod`, so it is reachable with the same credential as orders — unlike

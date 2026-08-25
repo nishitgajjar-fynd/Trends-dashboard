@@ -50,6 +50,7 @@ export const WINDOW_DAYS: Record<string, number> = {
   'slack-catalogue-report': 3,
   'slack-catalogue-sync-report': 3, // hourly report; 3 days of re-cover for late edits
   'sheets-store-master': 1,
+  'bq-store-master': 1,
   'bq-catalogue-master': 1,
   'bq-catalogue-health': 2, // Geckoboard summary snapshot; ≥ its 26h freshness SLA.
   'bq-loyalty': 2,
@@ -71,7 +72,7 @@ export const WINDOW_DAYS: Record<string, number> = {
  * lifecycle signature, not a claim about coverage, so the rule that a re-run
  * window must span at least one SLA period does not apply to them.
  */
-export const SNAPSHOT_CONNECTORS = new Set(['sheets-store-master', 'bq-catalogue-master']);
+export const SNAPSHOT_CONNECTORS = new Set(['sheets-store-master', 'bq-store-master', 'bq-catalogue-master']);
 
 export function windowFor(id: string, start?: string | null, end?: string | null): DateWindow {
   if (start && end) return { start, end };
