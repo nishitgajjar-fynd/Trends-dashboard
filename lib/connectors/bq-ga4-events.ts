@@ -88,8 +88,9 @@ export const SCAN_SQL = () => `
 ${PARAM_HELPERS}
 SELECT
   PARSE_DATE('%Y%m%d', event_date)     AS date_key,
-  ps(event_params, 'store_id')         AS store_id,
-  REGEXP_REPLACE(TRIM(ps(event_params, 'ean')), r'[^0-9]', '') AS ean,
+  -- Companion sends store_id and (real) ean as numeric params, so read them via pi().
+  CAST(pi(event_params, 'store_id') AS STRING) AS store_id,
+  REGEXP_REPLACE(TRIM(COALESCE(ps(event_params, 'ean'), CAST(pi(event_params, 'ean') AS STRING))), r'[^0-9]', '') AS ean,
   LOWER(ps(event_params, 'result'))    AS result,
   ps(event_params, 'platform')         AS platform,
   ps(event_params, 'sales_channel')    AS sales_channel,
@@ -97,6 +98,8 @@ SELECT
   COUNT(DISTINCT CONCAT(user_pseudo_id,'-',CAST(pi(event_params,'ga_session_id') AS STRING))) AS session_count
 FROM ${ga4Table()}
 WHERE _TABLE_SUFFIX BETWEEN @suffix_start AND @suffix_end
+  -- The scan-with-catalogue-result event carries ean + result + store (§16.5).
+  AND event_name = 'scan_catalog_lookup'
   AND ps(event_params, 'result') IS NOT NULL
   AND ${EAN_SQL_FILTER}
 GROUP BY 1,2,3,4,5,6

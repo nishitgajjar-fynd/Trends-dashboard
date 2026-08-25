@@ -61,10 +61,13 @@ export function normalizeEan(raw: unknown): EanVerdict {
  * fixture containing every reject reason through both and asserts identical
  * verdicts, so they cannot drift.
  */
+// Companion sends the barcode as a numeric param (int_value) for real GS1 EANs
+// and as a string only for internal ALU codes, so the value is read from either.
+const EAN_VAL = `COALESCE(ps(event_params,'ean'), CAST(pi(event_params,'ean') AS STRING))`;
 export const EAN_SQL_FILTER = `
-  REGEXP_CONTAINS(REGEXP_REPLACE(TRIM(ps(event_params,'ean')), r'[^0-9]', ''), r'^[0-9]{8,14}$')
-  AND NOT REGEXP_CONTAINS(LOWER(ps(event_params,'ean')), r'^https?://|www\\.|\\.(com|in|de|io|net|org)|/')
-  AND NOT REGEXP_CONTAINS(REGEXP_REPLACE(TRIM(ps(event_params,'ean')), r'[^0-9]', ''), r'^(0+|1+|9+)$')
+  REGEXP_CONTAINS(REGEXP_REPLACE(TRIM(${EAN_VAL}), r'[^0-9]', ''), r'^[0-9]{8,14}$')
+  AND NOT REGEXP_CONTAINS(LOWER(${EAN_VAL}), r'^https?://|www\\.|\\.(com|in|de|io|net|org)|/')
+  AND NOT REGEXP_CONTAINS(REGEXP_REPLACE(TRIM(${EAN_VAL}), r'[^0-9]', ''), r'^(0+|1+|9+)$')
 `.trim();
 
 /**
