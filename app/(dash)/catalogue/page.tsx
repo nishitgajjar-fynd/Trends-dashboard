@@ -79,6 +79,21 @@ export default async function CataloguePage({ searchParams }: { searchParams: Pr
   const maxReason = Math.max(...reasons.map((r) => r.count), 1);
   const maxAge = Math.max(...ageBuckets.map((b) => b.count), 1);
 
+  // Cards intentionally kept off this page: audited/true coverage lean on feeds
+  // that are not wired (store-visit audit, SAP master + RRA), and resolved-7d,
+  // per-store coverage and daily-report-health add noise rather than answering
+  // the page's question. The metrics stay defined in §5 and reach the registry;
+  // they are just not surfaced here.
+  const HIDDEN_KPI_IDS = new Set([
+    'audited_coverage',
+    'true_coverage',
+    'missing_resolved',
+    'store_coverage',
+    'report_generated',
+  ]);
+  const visibleKpis = mod.kpis.filter((k) => !HIDDEN_KPI_IDS.has(k.id));
+  const visibleHealthKpis = health.kpis.filter((k) => !HIDDEN_KPI_IDS.has(k.id));
+
   return (
     <div className="space-y-5">
       <ModuleHeader
@@ -110,7 +125,7 @@ export default async function CataloguePage({ searchParams }: { searchParams: Pr
         </div>
       )}
 
-      <KpiStrip metrics={mod.kpis} compareLabel={mod.compareLabel} />
+      <KpiStrip metrics={visibleKpis} compareLabel={mod.compareLabel} />
 
       {/* §6.3 — the missing-EAN card counts every EAN observed failing; the
           reason breakdown, the aging histogram and the register below count
@@ -181,7 +196,7 @@ export default async function CataloguePage({ searchParams }: { searchParams: Pr
           filled, image present, on platform. Source: {health.source}.
         </p>
 
-        <KpiStrip metrics={health.kpis} />
+        <KpiStrip metrics={visibleHealthKpis} />
 
         <div className="mt-4 grid gap-4 lg:grid-cols-2">
           <figure className="rounded border border-[var(--color-edge)] p-3">
