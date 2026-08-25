@@ -73,7 +73,7 @@ export default async function IssuesPage() {
       />
 
       {/* A11 — the P0 count is only correct once the board is filtered. */}
-      {!config.jiraComponentFilter && (
+      {!config.jiraComponentFilter && !config.jiraLabelFilter && (
         <div className="rounded border border-[var(--color-warn)]/50 bg-[var(--color-warn)]/10 px-3 py-2 text-xs">
           <span className="font-semibold text-[var(--color-warn)]">Unfiltered board</span>{' '}
           <span className="text-[var(--text-muted)]">

@@ -110,6 +110,14 @@ export class JiraConnector extends BaseConnector<JiraIssue, IssueRow> {
         .join(', ');
       parts.push(`component IN (${comps})`);
     }
+    // A11 — Companion is identified by labels, not a component.
+    if (config.jiraLabelFilter) {
+      const labels = config.jiraLabelFilter
+        .split(',')
+        .map((l) => `"${l.trim()}"`)
+        .join(', ');
+      parts.push(`labels IN (${labels})`);
+    }
     return `${parts.join(' AND ')} ORDER BY priority DESC, created ASC`;
   }
 

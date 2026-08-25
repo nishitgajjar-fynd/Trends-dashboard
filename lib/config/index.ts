@@ -118,6 +118,15 @@ export const config = {
   jiraApiToken: env('JIRA_API_TOKEN'),
   /** §13/A11 — the NI board is shared across four products. Unset means unfiltered. */
   jiraComponentFilter: env('JIRA_COMPONENT_FILTER'),
+  /**
+   * A11 — Companion has no Jira *component*; it is tracked by *labels*
+   * (Companion*, Scan&GoPSE, SNG). This scopes the board to Companion + Scan&Go
+   * and keeps Kiosk / other Impetus products out. Comma-separated label list.
+   */
+  jiraLabelFilter: env(
+    'JIRA_LABEL_FILTER',
+    'Companion,Companion_Web,companion-app,Companion_Android,Companion_iOS,Companion_SDK,companion_web,Scan&GoPSE,SNG',
+  ),
 
   // Sheets (§19)
   sheetStoreMasterId: env('SHEET_STORE_MASTER_ID', '11eqPcFZnGm4mAG0SS5DvS_4o8IwcpJSMsXE_HorQreE'),
