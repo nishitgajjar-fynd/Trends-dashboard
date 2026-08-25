@@ -93,7 +93,10 @@ SELECT
   REGEXP_REPLACE(TRIM(COALESCE(ps(event_params, 'ean'), CAST(pi(event_params, 'ean') AS STRING))), r'[^0-9]', '') AS ean,
   LOWER(ps(event_params, 'result'))    AS result,
   ps(event_params, 'platform')         AS platform,
-  ps(event_params, 'sales_channel')    AS sales_channel,
+  -- fact_scan_daily is unique on (date, store, ean, result, platform); a scan
+  -- can carry more than one sales_channel, so aggregate it rather than grouping
+  -- by it (grouping by it produced duplicate conflict keys → upsert failure).
+  MAX(ps(event_params, 'sales_channel')) AS sales_channel,
   COUNT(*)                             AS scan_count,
   COUNT(DISTINCT CONCAT(user_pseudo_id,'-',CAST(pi(event_params,'ga_session_id') AS STRING))) AS session_count
 FROM ${ga4Table()}
@@ -102,7 +105,7 @@ WHERE _TABLE_SUFFIX BETWEEN @suffix_start AND @suffix_end
   AND event_name = 'scan_catalog_lookup'
   AND ps(event_params, 'result') IS NOT NULL
   AND ${EAN_SQL_FILTER}
-GROUP BY 1,2,3,4,5,6
+GROUP BY 1,2,3,4,5
 `.trim();
 
 /** §13.11 — production fill-rate check for the seven scan-event params (A5). */
