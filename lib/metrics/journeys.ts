@@ -534,26 +534,21 @@ export function journeyFindings(
  * approximation, and the registry caveat says so. The true pooled median needs
  * per-session durations, which the mart deliberately does not store.
  */
-export function medianTimeToOrder(paths: JourneyPath[], nodes: EventNode[]): number | null {
-  const revenueEvents = new Set(nodes.filter((n) => n.revenueSessions > 0).map((n) => n.event));
-  if (revenueEvents.size === 0) return null;
-
+export function medianTimeToOrder(paths: JourneyPath[], _nodes: EventNode[]): number | null {
+  // Companion has no GA4 revenue field; a converting session is one that fired
+  // payment_success, which the connector counts into `convertedSessions`.
   const converting = paths.filter(
-    (p) =>
-      p.medianSeconds != null &&
-      p.medianSeconds > 0 &&
-      p.sessions > 0 &&
-      revenueEvents.has(p.steps[p.steps.length - 1]),
+    (p) => p.medianSeconds != null && p.medianSeconds > 0 && p.convertedSessions > 0,
   );
   if (converting.length === 0) return null;
 
-  // Weighted by sessions: a path taken by 4,000 people should not count the
-  // same as one taken by six.
+  // Weighted by converting sessions: a path taken by 4,000 buyers should not
+  // count the same as one taken by six.
   const expanded = [...converting].sort((a, b) => (a.medianSeconds ?? 0) - (b.medianSeconds ?? 0));
-  const total = expanded.reduce((sum, p) => sum + p.sessions, 0);
+  const total = expanded.reduce((sum, p) => sum + p.convertedSessions, 0);
   let seen = 0;
   for (const p of expanded) {
-    seen += p.sessions;
+    seen += p.convertedSessions;
     if (seen >= total / 2) return (p.medianSeconds ?? 0) * 1000;
   }
   return (expanded[expanded.length - 1].medianSeconds ?? 0) * 1000;

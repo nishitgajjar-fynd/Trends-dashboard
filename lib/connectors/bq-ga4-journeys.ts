@@ -75,7 +75,10 @@ seq AS (
     ANY_VALUE(platform) AS platform,
     ARRAY_AGG(event_name ORDER BY event_timestamp LIMIT ${MAX_PATH_STEPS}) AS steps,
     (MAX(event_timestamp) - MIN(event_timestamp)) / 1000000 AS seconds,
-    SUM(revenue) AS revenue
+    SUM(revenue) AS revenue,
+    -- Companion has no GA4 revenue field; a session converts when it fires
+    -- payment_success (checked across the whole session, not just the first steps).
+    LOGICAL_OR(event_name = 'payment_success') AS converted
   FROM deduped
   GROUP BY 1, 2
 )
@@ -85,7 +88,7 @@ SELECT
   ARRAY_TO_STRING(steps, '>') AS path,
   ARRAY_LENGTH(steps) AS step_count,
   COUNT(*) AS sessions,
-  COUNTIF(revenue > 0) AS converted_sessions,
+  COUNTIF(converted) AS converted_sessions,
   SUM(revenue) AS revenue,
   CAST(APPROX_QUANTILES(seconds, 2)[OFFSET(1)] AS INT64) AS median_seconds
 FROM seq
@@ -115,12 +118,13 @@ deduped AS (SELECT * FROM ordered WHERE prev_event IS NULL OR prev_event != even
 seq AS (
   SELECT date_key, session_key, ANY_VALUE(platform) AS platform,
     ARRAY_TO_STRING(ARRAY_AGG(event_name ORDER BY event_timestamp LIMIT ${MAX_PATH_STEPS}), '>') AS path,
-    SUM(revenue) AS revenue
+    SUM(revenue) AS revenue,
+    LOGICAL_OR(event_name = 'payment_success') AS converted
   FROM deduped GROUP BY 1, 2
 ),
 counted AS (SELECT *, COUNT(*) OVER (PARTITION BY date_key, platform, path) AS path_sessions FROM seq)
 SELECT date_key, platform, '(other)' AS path, 0 AS step_count,
-  COUNT(*) AS sessions, COUNTIF(revenue > 0) AS converted_sessions,
+  COUNT(*) AS sessions, COUNTIF(converted) AS converted_sessions,
   SUM(revenue) AS revenue, CAST(NULL AS INT64) AS median_seconds
 FROM counted
 WHERE path_sessions < @min_sessions
