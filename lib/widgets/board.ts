@@ -293,7 +293,6 @@ export const DEFAULT_BOARD: WidgetSpec[] = [
   { id: 'd4', kind: 'goal', metricId: 'unique_coverage', size: 'sm', order: 4 },
   { id: 'd5', kind: 'trend', seriesId: 'sales.daily_revenue', size: 'md', order: 5 },
   { id: 'd6', kind: 'leaderboard', seriesId: 'stores.dark', size: 'md', order: 6 },
-  { id: 'd7', kind: 'leaderboard', seriesId: 'catalogue.top_gaps', size: 'md', order: 7 },
   { id: 'd8', kind: 'status', metricId: 'crash_free_rate', size: 'sm', order: 8 },
   { id: 'd9', kind: 'number', metricId: 'p0_open', size: 'sm', order: 9 },
   { id: 'd10', kind: 'leaderboard', seriesId: 'discovered.worst_journeys', size: 'md', order: 10 },
