@@ -51,6 +51,7 @@ export const WINDOW_DAYS: Record<string, number> = {
   'slack-catalogue-sync-report': 3, // hourly report; 3 days of re-cover for late edits
   'sheets-store-master': 1,
   'bq-catalogue-master': 1,
+  'bq-catalogue-health': 2, // Geckoboard summary snapshot; ≥ its 26h freshness SLA.
   'bq-loyalty': 2,
   sentry: 7,
   jira: 1,
