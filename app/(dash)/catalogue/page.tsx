@@ -10,7 +10,6 @@ import { getFilterOptions } from '@/lib/services/filter-options';
 import { formatCount, formatPct } from '@/lib/format/currency';
 import { parseFilters, type RawParams } from '@/lib/params/filters';
 import { getThresholds } from '@/lib/db/settings';
-import { STORE_VISIT_AUDITS } from '@/fixtures/baselines';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,7 +29,6 @@ export default async function CataloguePage({ searchParams }: { searchParams: Pr
     gaps,
     ageBuckets,
     reasons,
-    storeCoverage,
     reportGeneratedToday,
     gapReconciliation,
   } = mod.data;
@@ -57,22 +55,6 @@ export default async function CataloguePage({ searchParams }: { searchParams: Pr
     { key: 'dir', header: 'Direction', render: (g) => g.reasonDirection ?? '—' },
     { key: 'status', header: 'Status', render: (g) => g.status },
     { key: 'owner', header: 'Owner', render: (g) => g.owner ?? <span className="text-[var(--color-warn)]">unowned</span> },
-  ];
-
-  const storeCols: Column<(typeof storeCoverage)[number]>[] = [
-    { key: 'store', header: 'Store', render: (s) => (s as { storeName?: string }).storeName ?? s.storeId },
-    { key: 'scans', header: 'Distinct EANs', numeric: true, render: (s) => formatCount(s.scans) },
-    { key: 'failed', header: 'Failed', numeric: true, render: (s) => formatCount(s.failed) },
-    {
-      key: 'cov',
-      header: 'Coverage',
-      numeric: true,
-      render: (s) => (
-        <span className={(s.coverage ?? 1) < t.coverage_target ? 'text-[var(--color-warn)]' : undefined}>
-          {formatPct(s.coverage, { precision: 2 })}
-        </span>
-      ),
-    },
   ];
 
   const maxReason = Math.max(...reasons.map((r) => r.count), 1);
@@ -323,50 +305,9 @@ export default async function CataloguePage({ searchParams }: { searchParams: Pr
               </li>
             ))}
           </ul>
-
-          <div className="mt-4 border-t border-[var(--color-edge)] pt-3">
-            <div className="label mb-2">Store-visit audits</div>
-            <ul className="space-y-1">
-              {STORE_VISIT_AUDITS.map((v) => (
-                <li key={v.storeLabel} className="flex justify-between gap-2 text-2xs">
-                  <span className="truncate text-[var(--text-muted)]" title={v.storeLabel}>
-                    {v.storeLabel}
-                  </span>
-                  <span className="num shrink-0">
-                    {v.itemsFailed}/{v.itemsScanned} failed ={' '}
-                    {formatPct((v.itemsScanned - v.itemsFailed) / v.itemsScanned, { precision: 0 })}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-          <p className="mt-3 text-2xs text-[var(--text-muted)]">
-            Source: fact_catalogue_gap (aging) · fact_store_visit_audit (visits) · auditor shelf
-            samples are a different measurement from scan-observed coverage (§16.5.2)
-          </p>
+          <p className="mt-3 text-2xs text-[var(--text-muted)]">Source: fact_catalogue_gap (aging)</p>
         </figure>
       </div>
-
-      <DataTable
-        caption="Store × coverage — is the gap systemic or store-specific?"
-        columns={storeCols}
-        rows={storeCoverage}
-        rowKey={(s) => s.storeId}
-        sourceNote="fact_scan_daily grouped by store_id"
-        maxHeight={320}
-        truncation={{
-          limit: 60,
-          sortKey: 'coverage, worst first',
-          noun: 'stores',
-          // The residual here is a floor, not a sum: the stores below the cut
-          // are the *healthiest*, so what matters is that none of them is worse
-          // than the last row shown.
-          residual: (hidden) =>
-            hidden.length === 0
-              ? null
-              : `all at or above ${formatPct(Math.min(...hidden.map((s) => s.coverage ?? 1)), { precision: 2 })} coverage`,
-        }}
-      />
 
       <DataTable
         caption="Missing EAN register"
