@@ -223,9 +223,9 @@ export default async function CataloguePage({ searchParams }: { searchParams: Pr
           </figure>
 
           <figure className="rounded border border-[var(--color-edge)] p-3">
-            <figcaption className="label mb-2">Worst-filled attributes (overall)</figcaption>
+            <figcaption className="label mb-2">Best-filled attributes (overall)</figcaption>
             <ul className="space-y-2">
-              {health.attributes.slice(0, 6).map((a) => (
+              {[...health.attributes].sort((a, b) => b.fillRate - a.fillRate).slice(0, 6).map((a) => (
                 <li key={a.attribute} className="grid grid-cols-[8rem_1fr_3rem] items-center gap-3">
                   <span className="truncate text-xs" title={a.attribute}>
                     {a.attribute}
