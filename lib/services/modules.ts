@@ -679,9 +679,12 @@ export async function catalogueHealthData(): Promise<CatalogueHealthResult> {
   const meta = { state: h.state, fetchedAt: h.fetchedAt, sourceOverride: h.source };
   const kpis: MetricValue[] = overall
     ? [
-        metricValue('catalogue_completion', overall.completionPct, meta),
+        metricValue('catalogue_complete_records', overall.completeCatalog, meta),
         metricValue('catalogue_fill_rate', overall.fillRatePct, meta),
         metricValue('catalogue_media_coverage', overall.mediaCoveragePct, meta),
+        // Kept in the module so every §5 metric still reaches a surface, but
+        // hidden from the /catalogue completeness strip (see HIDDEN_KPI_IDS).
+        metricValue('catalogue_completion', overall.completionPct, meta),
         metricValue('catalogue_missing_records', overall.missingCatalog, meta),
       ]
     : [];

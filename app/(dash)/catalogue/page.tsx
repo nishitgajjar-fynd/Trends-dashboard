@@ -31,7 +31,6 @@ export default async function CataloguePage({ searchParams }: { searchParams: Pr
     ageBuckets,
     reasons,
     storeCoverage,
-    auditedCoverage,
     reportGeneratedToday,
     gapReconciliation,
   } = mod.data;
@@ -90,6 +89,9 @@ export default async function CataloguePage({ searchParams }: { searchParams: Pr
     'missing_resolved',
     'store_coverage',
     'report_generated',
+    // Completeness strip shows Completed products instead of these two.
+    'catalogue_completion',
+    'catalogue_missing_records',
   ]);
   const visibleKpis = mod.kpis.filter((k) => !HIDDEN_KPI_IDS.has(k.id));
   const visibleHealthKpis = health.kpis.filter((k) => !HIDDEN_KPI_IDS.has(k.id));
@@ -147,24 +149,18 @@ export default async function CataloguePage({ searchParams }: { searchParams: Pr
       {/* §16.5.2 — three different measurements that will disagree. The
           difference between them is itself the finding. */}
       <section className="rounded border border-[var(--color-edge)] bg-[var(--surface)] p-4">
-        <h2 className="label mb-1">Three coverage measurements — never blended</h2>
+        <h2 className="label mb-1">Coverage measurements — never blended</h2>
         <p className="mb-3 text-2xs text-[var(--text-muted)]">
-          Customers mostly scan things that work; an auditor scans a random shelf. The gap between
-          these is not an error.
+          Scan-observed is what customers actually hit; true coverage is against the SAP master. They
+          answer different questions, so they are never blended into one number.
         </p>
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className="grid gap-3 md:grid-cols-2">
           {[
             {
               label: 'Scan-observed',
               value: mod.kpis.find((k) => k.id === 'unique_coverage')?.value ?? null,
               denom: 'Valid customer scan attempts',
               answers: 'Of what customers tried to scan, how much worked',
-            },
-            {
-              label: 'Store-visit audited',
-              value: auditedCoverage,
-              denom: 'Random shelf sample by an auditor',
-              answers: "Of what's on the shelf, how much is scannable",
             },
             {
               label: 'True coverage',

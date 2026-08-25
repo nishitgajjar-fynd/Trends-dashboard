@@ -609,6 +609,18 @@ export const METRICS = {
     description: 'How many catalogue records are still missing required attributes or media.',
     cadence: 'Daily snapshot',
   },
+  catalogue_complete_records: {
+    id: 'catalogue_complete_records',
+    label: 'Completed products',
+    domain: 'catalogue',
+    unit: 'count',
+    direction: 'up_good',
+    formula: 'complete_catalog',
+    source: 'catalogue_health.geckoboard_summary_v2 (bq-catalogue-health)',
+    grain: 'window',
+    description: 'How many catalogue records are complete — all required attributes and media present, on platform.',
+    cadence: 'Daily snapshot',
+  },
 
   /* ── §5.6 App / tech health ────────────────────────────────────────── */
   crash_free_rate: {
