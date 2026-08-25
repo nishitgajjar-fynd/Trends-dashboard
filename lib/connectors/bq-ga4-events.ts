@@ -29,7 +29,10 @@ CREATE TEMP FUNCTION ps(params ANY TYPE, k STRING) AS (
   (SELECT value.string_value FROM UNNEST(params) WHERE key = k)
 );
 CREATE TEMP FUNCTION pi(params ANY TYPE, k STRING) AS (
-  (SELECT COALESCE(value.int_value, CAST(value.double_value AS INT64))
+  -- SAFE_CAST, not CAST: some early rows carry a garbage ean stored as a ~1e20
+  -- double that overflows INT64 and 400s the whole query. SAFE_CAST yields NULL
+  -- for those, which the EAN hygiene filter then drops.
+  (SELECT COALESCE(value.int_value, SAFE_CAST(value.double_value AS INT64))
    FROM UNNEST(params) WHERE key = k)
 );
 `.trim();
