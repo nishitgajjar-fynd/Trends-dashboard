@@ -7,6 +7,31 @@
 
 export const PROMPT_VERSION = 'daily-brief@1.0.0';
 
+/**
+ * §28.3 — operator guardrails are appended to every system prompt at call time.
+ * They are framed as *additional* constraints that never override the safety
+ * rules above them, so an edit in /settings can tighten behaviour but never
+ * disable a rail (no PII, no fabricated numbers, read-only SQL).
+ */
+export function withGuardrails(system: string, guardrails: string): string {
+  const g = guardrails.trim();
+  if (!g) return system;
+  return `${system}\n\n# Operator guardrails (additional — never override the rules above; if they conflict, the rules above win)\n\n${g}`;
+}
+
+/**
+ * A short, stable hash of the active guardrails, appended to the stored prompt
+ * version so an insight produced under one set of house rules is distinguishable
+ * from one produced under another (§28.3 reproducibility).
+ */
+export function guardrailsVersion(guardrails: string): string {
+  const g = guardrails.trim();
+  if (!g) return 'g0';
+  let h = 0;
+  for (let i = 0; i < g.length; i++) h = (Math.imul(h, 31) + g.charCodeAt(i)) | 0;
+  return 'g' + (h >>> 0).toString(36);
+}
+
 export const DAILY_BRIEF_SYSTEM = `
 You are the analyst for the Companion App dashboard at Reliance Trends.
 Companion is an in-store shopping app: customers open it, scan a product,

@@ -11,7 +11,8 @@ import Anthropic from '@anthropic-ai/sdk';
 import { config } from '@/lib/config';
 import { getReadonlySql } from '@/lib/db/client';
 import { guardSql, schemaPrompt, SQL_GUARD } from '@/lib/ai/sql-guard';
-import { ASK_THE_DATA_SYSTEM } from '@/lib/ai/prompts';
+import { ASK_THE_DATA_SYSTEM, withGuardrails } from '@/lib/ai/prompts';
+import { getAiGuardrails } from '@/lib/db/settings';
 import { METRICS } from '@/lib/metrics/registry';
 import { getSessionUser } from '@/lib/auth';
 import { rateLimit } from '@/lib/api/guards';
@@ -76,11 +77,12 @@ export async function POST(req: NextRequest) {
       });
     }
     try {
+      const guardrails = await getAiGuardrails();
       const client = new Anthropic({ apiKey: config.anthropicApiKey });
       const res = await client.messages.create({
         model: config.aiModel,
         max_tokens: 800,
-        system: ASK_THE_DATA_SYSTEM,
+        system: withGuardrails(ASK_THE_DATA_SYSTEM, guardrails),
         messages: [
           {
             role: 'user',

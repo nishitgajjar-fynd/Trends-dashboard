@@ -135,7 +135,7 @@ export const config = {
 
   // AI (§28)
   anthropicApiKey: env('ANTHROPIC_API_KEY'),
-  aiModel: env('AI_MODEL', 'claude-sonnet-4-6'),
+  aiModel: env('AI_MODEL', 'claude-sonnet-5'),
   aiBriefCron: env('AI_BRIEF_CRON', '0 8 * * *'),
 
   // Modules (§0)

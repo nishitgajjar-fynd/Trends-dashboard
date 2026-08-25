@@ -13,9 +13,12 @@ import {
   DAILY_BRIEF_SYSTEM,
   extractCitedMetrics,
   extractNumbers,
+  guardrailsVersion,
   PROMPT_VERSION,
   RCA_NARRATIVE_SYSTEM,
+  withGuardrails,
 } from './prompts';
+import { getAiGuardrails } from '@/lib/db/settings';
 import type { RcaHit } from './rca';
 
 export interface Brief {
@@ -101,11 +104,12 @@ export async function generateDailyBrief(ctx: InsightContext): Promise<Brief> {
 
   try {
     assertNoPii(ctx); // §28.7 — asserted, not trusted
+    const guardrails = await getAiGuardrails();
     const client = new Anthropic({ apiKey: config.anthropicApiKey });
     const res = await client.messages.create({
       model: config.aiModel,
       max_tokens: 600,
-      system: DAILY_BRIEF_SYSTEM,
+      system: withGuardrails(DAILY_BRIEF_SYSTEM, guardrails),
       messages: [{ role: 'user', content: JSON.stringify(ctx) }],
     });
 
@@ -133,7 +137,7 @@ export async function generateDailyBrief(ctx: InsightContext): Promise<Brief> {
       body,
       citedMetrics: extractCitedMetrics(body),
       model: config.aiModel,
-      promptVersion: PROMPT_VERSION,
+      promptVersion: `${PROMPT_VERSION}+${guardrailsVersion(guardrails)}`,
       deterministic: false,
       warnings,
     };
@@ -155,11 +159,12 @@ export async function narrateRca(hit: RcaHit): Promise<string> {
   if (!isAiConfigured()) return deterministic;
 
   try {
+    const guardrails = await getAiGuardrails();
     const client = new Anthropic({ apiKey: config.anthropicApiKey });
     const res = await client.messages.create({
       model: config.aiModel,
       max_tokens: 300,
-      system: RCA_NARRATIVE_SYSTEM,
+      system: withGuardrails(RCA_NARRATIVE_SYSTEM, guardrails),
       messages: [
         {
           role: 'user',

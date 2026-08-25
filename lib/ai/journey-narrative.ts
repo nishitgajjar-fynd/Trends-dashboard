@@ -15,9 +15,10 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { config } from '@/lib/config';
 import { formatINR } from '@/lib/format/currency';
-import { JOURNEY_NARRATIVE_SYSTEM, JOURNEY_PROMPT_VERSION } from './prompts';
+import { JOURNEY_NARRATIVE_SYSTEM, JOURNEY_PROMPT_VERSION, withGuardrails } from './prompts';
 import { extractNumbers } from './prompts';
 import { isAiConfigured } from './brief';
+import { getAiGuardrails } from '@/lib/db/settings';
 import type { DiscoveredJourney, JourneyFinding, JourneyShift } from '@/lib/metrics/journeys';
 
 export interface JourneyNarrative {
@@ -150,11 +151,12 @@ export async function narrateJourney(
 
   try {
     const p = payload(j, finding, shift);
+    const guardrails = await getAiGuardrails();
     const client = new Anthropic({ apiKey: config.anthropicApiKey });
     const res = await client.messages.create({
       model: config.aiModel,
       max_tokens: 320,
-      system: JOURNEY_NARRATIVE_SYSTEM,
+      system: withGuardrails(JOURNEY_NARRATIVE_SYSTEM, guardrails),
       messages: [{ role: 'user', content: JSON.stringify(p) }],
     });
 

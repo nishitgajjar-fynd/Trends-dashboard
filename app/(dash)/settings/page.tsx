@@ -1,8 +1,9 @@
 /** §12 — Thresholds, SLOs, alert routing, module flags. */
-import { CRITICAL_ENDPOINTS, getThresholds } from '@/lib/db/settings';
+import { CRITICAL_ENDPOINTS, getAiGuardrails, getThresholds } from '@/lib/db/settings';
 import { ModuleHeader } from '@/components/table/DataTable';
+import { GuardrailsEditor } from '@/components/settings/GuardrailsEditor';
 import { config } from '@/lib/config';
-import { CAN_EDIT, getSessionUser, LANDING_BY_ROLE } from '@/lib/auth';
+import { canEdit, CAN_EDIT, getSessionUser, LANDING_BY_ROLE } from '@/lib/auth';
 import { formatMs, formatPct } from '@/lib/format/currency';
 import { isDbConfigured } from '@/lib/config';
 
@@ -10,8 +11,10 @@ export const dynamic = 'force-dynamic';
 
 export default async function SettingsPage() {
   const t = await getThresholds();
+  const guardrails = await getAiGuardrails();
   const user = getSessionUser();
   const editable = CAN_EDIT[user.role];
+  const canEditSettings = canEdit(user.role, 'settings');
 
   return (
     <div className="space-y-5">
@@ -143,6 +146,24 @@ export default async function SettingsPage() {
             </div>
           ))}
         </dl>
+      </section>
+
+      <section className="rounded border border-[var(--color-edge)] bg-[var(--surface)] p-4">
+        <h2 className="label mb-1">AI Insights guardrails</h2>
+        <p className="mb-3 max-w-3xl text-2xs text-[var(--text-muted)]">
+          House rules appended to every AI system prompt (daily brief, root-cause hints, Ask the
+          data, journey narration). They <span className="text-[var(--text-primary)]">add to</span>{' '}
+          the built-in safety rails — no PII, no invented numbers, read-only SQL — and can never
+          switch them off. Edits apply to the next generation, no redeploy.
+          {!config.anthropicApiKey && (
+            <span className="text-[var(--color-warn)]">
+              {' '}
+              ANTHROPIC_API_KEY is not set, so AI Insights is still on the deterministic fallback —
+              these guardrails take effect once the key is configured.
+            </span>
+          )}
+        </p>
+        <GuardrailsEditor initial={guardrails} canEdit={canEditSettings} />
       </section>
     </div>
   );

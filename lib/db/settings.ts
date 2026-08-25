@@ -101,3 +101,83 @@ export async function getThresholds(): Promise<Thresholds> {
 export function invalidateThresholdCache(): void {
   cached = null;
 }
+
+/* ── §28 — AI guardrails ────────────────────────────────────────────────────
+ *
+ * Operator-editable house rules appended to every AI system prompt. They live in
+ * `app_setting` (key `ai_guardrails`) so a PM can tune them from /settings without
+ * a deploy. They ADD to the hard-coded safety rails (no PII, no fabricated
+ * numbers, read-only SQL) — they can never switch those off.
+ */
+export const AI_GUARDRAILS_KEY = 'ai_guardrails';
+
+/**
+ * The starter guardrails. Deliberately conservative: the point is that the model
+ * never confuses the reader or states anything that is not in the data.
+ */
+export const DEFAULT_AI_GUARDRAILS = `
+# Companion dashboard — AI house rules
+
+## Scope
+- You speak only about the Companion "Scan & Go" app for Reliance Trends (open → scan → add to bag → pay → de-tag), production only.
+- Do not comment on Kiosk, other Impetus products, or anything not present in the JSON context you were given.
+
+## Truthfulness (most important)
+- Use only numbers and facts that appear in the context. Never estimate, extrapolate, or invent a figure.
+- If a value is marked stale, fixture, missing, or not_instrumented, say plainly that it is a data/instrumentation gap — never present it as a business result.
+- If the context does not support an answer, say so and name the one thing a person should check. Do not guess a cause.
+- Never state a cause as proven. Describe what the numbers are consistent with.
+
+## Tone and format
+- Neutral, factual, concise. No hype, no praise, no reassurance, no filler, no greeting, no sign-off, no emoji.
+- Money in Indian numbering (lakh, crore) with the ₹ symbol. Percentages to one decimal.
+- Refer to metrics by their id in square brackets, e.g. [orders], and always give the window.
+
+## Safety
+- Never output anything that looks like personal data (names, phone numbers, emails, customer ids).
+- If asked to do something outside reporting on this dashboard, decline briefly and restate what you can help with.
+`.trim();
+
+let cachedGuardrails: string | null = null;
+
+/** Reads the operator guardrails from `app_setting`, falling back to the default. */
+export async function getAiGuardrails(): Promise<string> {
+  if (cachedGuardrails != null) return cachedGuardrails;
+  const { getDb } = await import('./client');
+  const db = getDb();
+  if (!db) {
+    cachedGuardrails = DEFAULT_AI_GUARDRAILS;
+    return cachedGuardrails;
+  }
+  try {
+    const { appSetting } = await import('./schema');
+    const { eq } = await import('drizzle-orm');
+    const rows = await db.select().from(appSetting).where(eq(appSetting.key, AI_GUARDRAILS_KEY));
+    const value = rows[0]?.value;
+    cachedGuardrails = typeof value === 'string' && value.trim() ? value : DEFAULT_AI_GUARDRAILS;
+  } catch {
+    cachedGuardrails = DEFAULT_AI_GUARDRAILS;
+  }
+  return cachedGuardrails;
+}
+
+/** Upserts the guardrails and busts the cache. Returns false when no DB is present. */
+export async function setAiGuardrails(text: string, updatedBy?: string): Promise<boolean> {
+  const { getDb } = await import('./client');
+  const db = getDb();
+  if (!db) return false;
+  const { appSetting } = await import('./schema');
+  await db
+    .insert(appSetting)
+    .values({ key: AI_GUARDRAILS_KEY, value: text, description: 'AI Insights house guardrails (§28)', updatedBy })
+    .onConflictDoUpdate({
+      target: appSetting.key,
+      set: { value: text, updatedBy, updatedAt: new Date() },
+    });
+  cachedGuardrails = text;
+  return true;
+}
+
+export function invalidateGuardrailsCache(): void {
+  cachedGuardrails = null;
+}
