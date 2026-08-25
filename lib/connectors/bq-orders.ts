@@ -213,6 +213,24 @@ export class BqOrdersConnector extends BaseConnector<Record<string, unknown>, Or
           },
         });
     }
+
+    // §27.4 — new vs repeat is a function of each customer's first order across
+    // ALL history, not the loaded window. It must be recomputed after every load,
+    // or freshly-ingested orders keep the default (`false`) and a genuine surge of
+    // new customers reads as "repeat" (exactly the New→Repeat flip seen once the
+    // late-August orders landed). One indexed UPDATE over the natural key.
+    await db.execute(sql`
+      UPDATE fact_orders o
+      SET is_new_customer = (o.order_date = f.first_date)
+      FROM (
+        SELECT customer_id, MIN(order_date) AS first_date
+        FROM fact_orders
+        WHERE customer_id IS NOT NULL
+        GROUP BY customer_id
+      ) f
+      WHERE f.customer_id = o.customer_id
+    `);
+
     return { rowsIngested: rows.length, table: 'fact_orders' };
   }
 
