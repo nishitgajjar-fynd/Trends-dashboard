@@ -74,7 +74,14 @@ export class Ga4ApiConnector extends BaseConnector<Ga4AggregateRow, Ga4Aggregate
   readonly blockedBy = '§13.2 service account added to GA4 property; A8 custom dimension registration';
 
   isConfigured(): boolean {
-    return isGcpConfigured() && Boolean(config.ga4PropertyId);
+    // Opt-in. The GA4 Data API needs a service account added to the property (A8)
+    // — a different grant than ADC, so it 403s (ACCESS_TOKEN_SCOPE_INSUFFICIENT).
+    // The GA4 BigQuery export (bq-ga4-*) already provides the funnel/journey data,
+    // so this cross-check connector stays off (skipped, not failed) until that
+    // service account exists. Enable with GA4_API_ENABLED=true.
+    return (
+      process.env.GA4_API_ENABLED === 'true' && isGcpConfigured() && Boolean(config.ga4PropertyId)
+    );
   }
 
   protected async extract(w: DateWindow): Promise<Ga4AggregateRow[]> {
