@@ -150,14 +150,16 @@ export const FUNNEL_STEPS: FunnelStepDef[] = [
   { step: 'scan_attempt', eventName: 'scan_go_scan_attempt', label: 'Scan attempt', order: 3, ratio: 0.83, instrumented: true, confirmed: 'confirmed' },
   { step: 'scan_success', eventName: 'scanner_product_found', label: 'Scan success', order: 4, ratio: 0.94, instrumented: true, confirmed: 'confirmed' },
   // No distinct product-detail event — the scan result IS the product view — so
-  // this step stays an honest instrumentation gap rather than a guessed mapping.
-  { step: 'view_item', label: 'Product viewed', order: 5, ratio: 0.88, instrumented: true, confirmed: 'verify' },
+  // there is nothing to instrument here. Hidden from the funnel rather than shown
+  // as a permanent "not instrumented" gap that never resolves.
+  { step: 'view_item', label: 'Product viewed', order: 5, ratio: 0.88, instrumented: true, confirmed: 'verify', hidden: true },
   { step: 'add_to_cart', eventName: 'scan_go_add_to_cart', label: 'Added to bag', order: 6, ratio: 0.31, instrumented: true, confirmed: 'confirmed' },
   { step: 'view_cart', eventName: 'scan_go_cart_review', label: 'Cart viewed', order: 7, ratio: 0.72, instrumented: true, confirmed: 'confirmed' },
   { step: 'begin_checkout', eventName: 'scan_go_proceed_checkout', label: 'Checkout begun', order: 8, ratio: 0.63, instrumented: true, confirmed: 'confirmed' },
   // No add_payment_info event in Companion; payment success rate uses
-  // payment_success ÷ (payment_success + payment_failure) instead.
-  { step: 'add_payment_info', label: 'Payment info added', order: 9, ratio: 0.78, instrumented: true, confirmed: 'verify' },
+  // payment_success ÷ (payment_success + payment_failure) instead. Hidden from the
+  // funnel rather than shown as a permanent "not instrumented" gap.
+  { step: 'add_payment_info', label: 'Payment info added', order: 9, ratio: 0.78, instrumented: true, confirmed: 'verify', hidden: true },
   // Companion fires `payment_success`, not the GA4-standard `purchase` event.
   // The funnel ends here.
   { step: 'purchase', eventName: 'payment_success', label: 'Payment success', order: 10, ratio: 0.9, instrumented: true, confirmed: 'confirmed' },
@@ -194,21 +196,30 @@ export function fixtureFunnel(window: DateWindow): FunnelRow[] {
       for (const def of FUNNEL_STEPS) {
         const jitter = 0.95 + rng() * 0.1;
         if (def.hidden) {
-          // payment_failure: ~11% of the successes just counted (~90% success
-          // rate), kept off the funnel chain so the visible steps are unaffected.
-          const failCount = Math.round(count * 0.11 * jitter);
-          out.push({
-            dateKey,
-            storeId: '',
-            platform,
-            appVersion: '9.44',
-            step: def.step,
-            stepOrder: def.order,
-            eventCount: def.instrumented ? failCount : 0,
-            sessionCount: def.instrumented ? failCount : 0,
-            userCount: def.instrumented ? failCount : 0,
-            isInstrumented: def.instrumented,
-          });
+          // payment_failure is hidden but still emits a row: it is the denominator
+          // for the payment success rate. ~11% of the successes just counted
+          // (~90% success rate), and it branches off the chain rather than
+          // advancing it, so `count` is left untouched.
+          if (def.step === 'payment_failure') {
+            const failCount = Math.round(count * 0.11 * jitter);
+            out.push({
+              dateKey,
+              storeId: '',
+              platform,
+              appVersion: '9.44',
+              step: def.step,
+              stepOrder: def.order,
+              eventCount: failCount,
+              sessionCount: failCount,
+              userCount: failCount,
+              isInstrumented: def.instrumented,
+            });
+            continue;
+          }
+          // Other hidden steps (Companion fires no event for them) are not shown,
+          // but they still advance the chain so the visible steps around them keep
+          // the same counts they always had — the drop is real, just uncredited.
+          count = Math.round(count * def.ratio * jitter);
           continue;
         }
         count = def.order === 1 ? count : Math.round(count * def.ratio * jitter);

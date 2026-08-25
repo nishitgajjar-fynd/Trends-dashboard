@@ -185,12 +185,12 @@ describe('the funnel ties to sales', () => {
 
   it('runs the full journey in order, ending at payment success', () => {
     const steps = modules[1].data.steps;
-    // Funnel ends at payment_success (`purchase` is its internal step key);
-    // the never-instrumented de-tag step was dropped, and payment_failure is
-    // hidden from the visual funnel.
+    // Funnel ends at payment_success (`purchase` is its internal step key). The
+    // never-instrumented steps — de-tag, product-viewed and payment-info-added —
+    // are hidden from the visual funnel, as is payment_failure.
     expect(steps.map((s) => s.step)).toEqual([
-      'session_start', 'scanner_open', 'scan_attempt', 'scan_success', 'view_item',
-      'add_to_cart', 'view_cart', 'begin_checkout', 'add_payment_info', 'purchase',
+      'session_start', 'scanner_open', 'scan_attempt', 'scan_success',
+      'add_to_cart', 'view_cart', 'begin_checkout', 'purchase',
     ]);
     // Each instrumented step is smaller than the one before it.
     const counts = steps.filter((s) => s.isInstrumented).map((s) => s.count!);

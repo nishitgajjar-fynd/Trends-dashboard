@@ -52,7 +52,7 @@ export default async function JourneyPage({ searchParams }: { searchParams: Prom
           not in FUNNEL_STEPS cannot appear here at all, so the other reading is
           one click away rather than buried. */}
       <p className="text-2xs text-[var(--text-muted)]">
-        These eleven steps were agreed in advance. For the routes people actually took —
+        These steps were agreed in advance. For the routes people actually took —
         found in the data, not declared —{' '}
         <Link href="/journey/discovered" className="text-[var(--color-ion)] underline">
           see Journeys found
