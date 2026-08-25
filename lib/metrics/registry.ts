@@ -63,9 +63,6 @@ export const METRICS = {
     grain: 'day × store',
     description: 'Completed Companion orders. Cancellations excluded.',
     cadence: '60 min, plus 02:00 IST full-day rebuild',
-    caveat:
-      'A3 — the avis_base_view status enum is unconfirmed (§13.4). Both inclusive and exclusive counts are computed; the headline is the inclusive figure.',
-    ambiguous: true,
   },
   orders_confirmed: {
     id: 'orders_confirmed',
@@ -94,7 +91,6 @@ export const METRICS = {
     grain: 'day × store',
     description: 'Gross merchandise value transacted through Companion.',
     cadence: '60 min',
-    caveat: 'A2 — rupees-vs-paise must be confirmed at source (§15.3). A 100× error looks entirely normal.',
   },
   net_revenue: {
     id: 'net_revenue',

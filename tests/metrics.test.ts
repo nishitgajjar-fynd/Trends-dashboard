@@ -43,10 +43,12 @@ describe('§5 metric registry is the contract', () => {
   });
 
   it('labels the metrics whose definition is still ambiguous', () => {
-    // A3 (order status enum) and A11 (Jira board filter).
-    expect(METRICS.orders.ambiguous).toBe(true);
+    // A11 (Jira board filter) stays flagged on its own card. The order-status
+    // ambiguity note now lives on the orders_confirmed card (explaining why it
+    // equals Orders) rather than on the Orders headline, to keep the strip clean.
     expect(METRICS.p0_open.ambiguous).toBe(true);
-    expect(METRICS.orders.caveat).toMatch(/status enum/i);
+    expect(METRICS.orders_confirmed.ambiguous).toBe(true);
+    expect(METRICS.orders_confirmed.caveat).toMatch(/same as orders/i);
   });
 
   it('keeps the three coverage measurements permanently distinct', () => {
@@ -146,8 +148,13 @@ describe('§16.9 not-instrumented is not zero', () => {
   });
 
   it('still computes rates for the instrumented steps around it', () => {
-    const steps = aggregateFunnel(rows);
-    expect(journey.paymentSuccessRate(steps)).toBeCloseTo(0.9, 5);
+    // payment_success rate is success ÷ (success + failure); `purchase` is the
+    // internal key for the payment_success event.
+    const steps = aggregateFunnel([
+      ...rows,
+      { step: 'payment_failure', stepOrder: 12, eventCount: 5, sessionCount: 5, userCount: 5, isInstrumented: true },
+    ]);
+    expect(journey.paymentSuccessRate(steps)).toBeCloseTo(0.9, 5); // 45 / (45 + 5)
   });
 
   it('treats a step as uninstrumented if any slice says so', () => {
