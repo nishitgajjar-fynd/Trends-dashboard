@@ -87,7 +87,11 @@ export default async function CataloguePage({ searchParams }: { searchParams: Pr
         scope={mod.scope}
         compareLabel={mod.compareLabel}
         sources={mod.sources}
-        warnings={[...mod.warnings, ...filters.warnings]}
+        warnings={[...mod.warnings, ...filters.warnings].filter(
+          // The Tatsu daily-report table is empty because its Slack connector is
+          // not configured — a known blocker, not something to alarm on here.
+          (w) => !w.includes('Mart is empty'),
+        )}
       />
 
       <FilterBar
