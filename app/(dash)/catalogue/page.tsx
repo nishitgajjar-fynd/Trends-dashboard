@@ -10,8 +10,6 @@ import { getFilterOptions } from '@/lib/services/filter-options';
 import { formatCount, formatPct } from '@/lib/format/currency';
 import { parseFilters, type RawParams } from '@/lib/params/filters';
 import { getThresholds } from '@/lib/db/settings';
-import { getScanStrip } from '@/lib/data/repository';
-import { ScanStrip } from '@/components/charts/ScanStrip';
 import { STORE_VISIT_AUDITS } from '@/fixtures/baselines';
 
 export const dynamic = 'force-dynamic';
@@ -21,10 +19,9 @@ export default async function CataloguePage({ searchParams }: { searchParams: Pr
   // §18.7's backfill window is the default here: it is the range the catalogue
   // baseline is stated for, so an unfiltered load reproduces a known number.
   const filters = raw.start || raw.end ? parseFilters(raw, 14) : { ...parseFilters(raw, 14), window: { start: '2026-07-30', end: '2026-08-12' } };
-  const [mod, t, strip, options, health] = await Promise.all([
+  const [mod, t, options, health] = await Promise.all([
     catalogueModule(filters),
     getThresholds(),
-    getScanStrip(),
     getFilterOptions(),
     catalogueHealthData(),
   ]);
@@ -101,8 +98,6 @@ export default async function CataloguePage({ searchParams }: { searchParams: Pr
         states={options.states}
         showPlatform
       />
-
-      <ScanStrip data={strip.rows} state={strip.state} liveness={strip.state === 'fixture' ? 'fixture' : 'intraday'} compact />
 
       {/* §18.6 — the daily report has silently stopped generating before. */}
       {reportGeneratedToday !== true && (

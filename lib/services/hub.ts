@@ -28,7 +28,6 @@ import {
   salesModule,
   storesModule,
 } from './modules';
-import { getScanStrip } from '@/lib/data/repository';
 import { aggregateOrders } from '@/lib/metrics/compute';
 import { getOrders } from '@/lib/data/repository';
 
@@ -45,7 +44,6 @@ export interface HealthLight {
 export interface HubData {
   lights: HealthLight[];
   headline: MetricValue[];
-  scanStrip: Awaited<ReturnType<typeof getScanStrip>>;
   anomalies: Anomaly[];
   /** Per-store and per-state outliers the global sweep cannot see. */
   entityAnomalies: EntityAnomaly[];
@@ -63,14 +61,13 @@ function pct(v: number | null): string {
 
 export async function hubData(): Promise<HubData> {
   const t = await getThresholds();
-  const [sales, journey, stores, catalogue, appHealth, issues, strip, connectors] = await Promise.all([
+  const [sales, journey, stores, catalogue, appHealth, issues, connectors] = await Promise.all([
     salesModule(trailingWindow(28)),
     journeyModule(trailingWindow(28)),
     storesModule(trailingWindow(28)),
     catalogueModule(),
     appHealthModule(trailingWindow(28)),
     issuesModule(),
-    getScanStrip(),
     connectorStatuses(),
   ]);
 
@@ -311,7 +308,6 @@ export async function hubData(): Promise<HubData> {
   return {
     lights,
     headline,
-    scanStrip: strip,
     anomalies,
     entityAnomalies,
     concentration: coverageConcentration,

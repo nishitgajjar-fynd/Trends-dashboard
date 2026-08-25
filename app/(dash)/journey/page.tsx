@@ -8,16 +8,13 @@ import { FilterBar } from '@/components/filters/FilterBar';
 import { getFilterOptions } from '@/lib/services/filter-options';
 import { formatCount, formatPct } from '@/lib/format/currency';
 import { parseFilters, type RawParams } from '@/lib/params/filters';
-import { getScanStrip } from '@/lib/data/repository';
-import { ScanStrip } from '@/components/charts/ScanStrip';
 
 export const dynamic = 'force-dynamic';
 
 export default async function JourneyPage({ searchParams }: { searchParams: Promise<RawParams> }) {
   const filters = parseFilters(await searchParams, 28);
-  const [mod, strip, options] = await Promise.all([
+  const [mod, options] = await Promise.all([
     journeyModule(filters),
-    getScanStrip(),
     getFilterOptions(),
   ]);
   const { steps, dropoff, byPlatform, instrumentationGaps } = mod.data;
@@ -62,8 +59,6 @@ export default async function JourneyPage({ searchParams }: { searchParams: Prom
         </Link>
         .
       </p>
-
-      <ScanStrip data={strip.rows} state={strip.state} liveness={strip.state === 'fixture' ? 'fixture' : 'intraday'} compact />
 
       <KpiStrip metrics={mod.kpis} compareLabel={mod.compareLabel} />
 

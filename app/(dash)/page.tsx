@@ -2,14 +2,12 @@
  * §4.1 — Hub. Executive summary.
  *
  * One screen. It answers one question: is Companion healthy today, and if not,
- * where? Everything on it either answers that or earns its place by showing the
- * product actually being used (the Scan Strip).
+ * where? Everything on it earns its place by answering that.
  */
 import Link from 'next/link';
 import { hubData } from '@/lib/services/hub';
 import { deterministicBrief, generateDailyBrief } from '@/lib/ai/brief';
 import { KpiCard } from '@/components/kpi/KpiCard';
-import { ScanStrip } from '@/components/charts/ScanStrip';
 import { cn } from '@/lib/cn';
 import { FixtureBadge } from '@/components/data-state';
 
@@ -58,13 +56,6 @@ export default async function HubPage() {
           </div>
         )}
       </div>
-
-      {/* The pulse. The only element that shows the product being used right now. */}
-      <ScanStrip
-        data={hub.scanStrip.rows}
-        state={hub.scanStrip.state}
-        liveness={hub.scanStrip.state === 'fixture' ? 'fixture' : 'intraday'}
-      />
 
       {/* Six health lights, each naming its worst contributing metric. */}
       <section aria-label="Domain health">

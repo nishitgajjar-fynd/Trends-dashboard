@@ -166,9 +166,23 @@ export class BqOrdersConnector extends BaseConnector<Record<string, unknown>, Or
 
   protected async load(rows: OrderRow[]): Promise<LoadResult> {
     const { getDb } = await import('@/lib/db/client');
-    const { factOrders } = await import('@/lib/db/schema');
+    const { factOrders, dimStore } = await import('@/lib/db/schema');
     const db = getDb();
     if (!db) return { rowsIngested: 0, table: 'fact_orders' };
+
+    // §7.1 — orders can reference a store the master sheet has not caught up to
+    // yet (one onboarded this week). fact_orders.store_id is a FK to dim_store, so
+    // a single unknown store aborts the whole batch and drops real orders on the
+    // floor — exactly the silent hole that left recent windows empty. Guarantee
+    // the dimension row exists first: a minimal stub, which the store-master fills
+    // in with real metadata on its next upsert. No order is ever lost to sheet lag.
+    const storeIds = [...new Set(rows.map((r) => r.storeId).filter((s): s is string => Boolean(s)))];
+    if (storeIds.length) {
+      await db
+        .insert(dimStore)
+        .values(storeIds.map((storeId) => ({ storeId })))
+        .onConflictDoNothing({ target: dimStore.storeId });
+    }
 
     // §27.5 — upsert on the natural key, never insert-only, so any window can be
     // re-run safely and backfill is trivial.
