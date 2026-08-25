@@ -79,6 +79,8 @@ export const METRICS = {
     description:
       'The stricter variant, computed alongside `orders` while the status enum is unconfirmed. Better a labelled approximation than a confident wrong number.',
     cadence: '60 min',
+    caveat:
+      'Equals Orders for now: only completed orders (handed_over_to_customer) are ingested, so both cards count the same set until the full status enum is confirmed (§13.4).',
     ambiguous: true,
   },
   egmv: {
@@ -105,6 +107,8 @@ export const METRICS = {
     grain: 'day × store',
     description: 'Revenue after discounts, coupons and returns.',
     cadence: '60 min',
+    caveat:
+      'Equals e-GMV for now: discount/coupon columns are not yet mapped at source (§15.3), so net = gross until deductions are broken out.',
   },
   aov: {
     id: 'aov',
