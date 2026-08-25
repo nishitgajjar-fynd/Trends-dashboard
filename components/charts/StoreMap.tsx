@@ -196,9 +196,10 @@ export function StoreMap({ stores }: { stores: StorePoint[] }) {
                     {c.city}
                   </text>
                 )}
-                <title>
-                  {c.city} — {c.stores.length} stores, {c.dark} dark ({Math.round(c.darkShare * 100)}%)
-                </title>
+                {/* Single string child: React 19 rejects a <title> with multiple
+                    children, which fails hydration for the whole page (and with it
+                    every filter control) once the map has markers to render. */}
+                <title>{`${c.city} — ${c.stores.length} stores, ${c.dark} dark (${Math.round(c.darkShare * 100)}%)`}</title>
               </g>
             );
           })}
