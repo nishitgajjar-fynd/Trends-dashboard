@@ -43,6 +43,13 @@ export default async function HubPage() {
           <p className="mt-0.5 text-xs text-[var(--text-muted)]">
             Companion App · Reliance Trends · production only
           </p>
+          <p className="mt-0.5 text-2xs text-[var(--text-muted)]">
+            Last 28 days ·{' '}
+            <span className="num">
+              {hub.context.window.start} → {hub.context.window.end}
+            </span>{' '}
+            IST · compared with the previous 28 days
+          </p>
         </div>
         {hub.fixtureCount > 0 && (
           <div className="flex items-center gap-2 text-2xs text-[var(--text-muted)]">

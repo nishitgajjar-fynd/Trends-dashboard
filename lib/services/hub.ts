@@ -119,9 +119,9 @@ export async function hubData(): Promise<HubData> {
       light: band(compliance?.value ?? null, 0.7, 0.8),
       worst: dark
         ? {
-            label: 'Dark stores (7d)',
+            label: 'Dark stores',
             value: String(dark.value ?? '—'),
-            why: 'Live stores with zero orders in the last 7 days',
+            why: 'Live stores with no orders in the last 28 days',
           }
         : null,
     },
