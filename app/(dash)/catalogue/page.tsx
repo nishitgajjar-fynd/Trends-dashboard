@@ -146,38 +146,6 @@ export default async function CataloguePage({ searchParams }: { searchParams: Pr
         </span>
       </div>
 
-      {/* §16.5.2 — three different measurements that will disagree. The
-          difference between them is itself the finding. */}
-      <section className="rounded border border-[var(--color-edge)] bg-[var(--surface)] p-4">
-        <h2 className="label mb-1">Coverage measurements — never blended</h2>
-        <p className="mb-3 text-2xs text-[var(--text-muted)]">
-          Scan-observed is what customers actually hit; true coverage is against the SAP master. They
-          answer different questions, so they are never blended into one number.
-        </p>
-        <div className="grid gap-3 md:grid-cols-2">
-          {[
-            {
-              label: 'Scan-observed',
-              value: mod.kpis.find((k) => k.id === 'unique_coverage')?.value ?? null,
-              denom: 'Valid customer scan attempts',
-              answers: 'Of what customers tried to scan, how much worked',
-            },
-            {
-              label: 'True coverage',
-              value: null,
-              denom: 'SAP catalogue master',
-              answers: 'Of what should exist, how much does — feed not wired (§13.9)',
-            },
-          ].map((c) => (
-            <div key={c.label} className="rounded border border-[var(--color-edge)] p-3">
-              <div className="label mb-1">{c.label}</div>
-              <div className="num text-xl">{c.value == null ? '—' : formatPct(c.value, { precision: 1 })}</div>
-              <div className="mt-1 text-2xs text-[var(--text-muted)]">Denominator: {c.denom}</div>
-              <div className="mt-0.5 text-2xs text-[var(--text-muted)]">{c.answers}</div>
-            </div>
-          ))}
-        </div>
-      </section>
 
       {/* §5.4b — catalogue completeness (catalogue_health). A different question
           from scan coverage: is the product record itself complete. Kept in its
