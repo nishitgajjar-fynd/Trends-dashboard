@@ -10,6 +10,7 @@ import { describe, expect, it } from 'vitest';
 import { ALL_METRIC_IDS, getMetric } from '@/lib/metrics/registry';
 import {
   appHealthModule,
+  catalogueHealthData,
   catalogueModule,
   issuesModule,
   journeyDiscoveryModule,
@@ -32,6 +33,8 @@ const modules = await Promise.all([
   // Appended, not inserted: the destructuring below is positional, and adding a
   // module in the middle silently reassigns every name after it.
   journeyDiscoveryModule(trailingWindow(28)),
+  // Catalogue completeness section on /catalogue — emits the catalogue_* metrics.
+  catalogueHealthData(),
 ]);
 
 const emitted = new Map(modules.flatMap((m) => m.kpis).map((k) => [k.id, k]));
@@ -180,17 +183,20 @@ describe('the funnel ties to sales', () => {
     expect(Math.abs(purchases - orders) / orders).toBeLessThan(0.1);
   });
 
-  it('runs the full journey in order, ending at the uninstrumented de-tag step', () => {
+  it('runs the full journey in order, ending at payment success', () => {
     const steps = modules[1].data.steps;
+    // Funnel ends at payment_success (`purchase` is its internal step key);
+    // the never-instrumented de-tag step was dropped, and payment_failure is
+    // hidden from the visual funnel.
     expect(steps.map((s) => s.step)).toEqual([
       'session_start', 'scanner_open', 'scan_attempt', 'scan_success', 'view_item',
-      'add_to_cart', 'view_cart', 'begin_checkout', 'add_payment_info', 'purchase', 'invoice_detag',
+      'add_to_cart', 'view_cart', 'begin_checkout', 'add_payment_info', 'purchase',
     ]);
     // Each instrumented step is smaller than the one before it.
     const counts = steps.filter((s) => s.isInstrumented).map((s) => s.count!);
     for (let i = 1; i < counts.length; i++) expect(counts[i]).toBeLessThanOrEqual(counts[i - 1]);
-    // A6 — the last step of the core journey is invisible today.
-    expect(steps.at(-1)!.isInstrumented).toBe(false);
-    expect(steps.at(-1)!.count).toBeNull();
+    // The terminal step is payment_success, a real instrumented event.
+    expect(steps.at(-1)!.step).toBe('purchase');
+    expect(steps.at(-1)!.isInstrumented).toBe(true);
   });
 });
