@@ -185,10 +185,13 @@ describe('store and state rollups', () => {
     expect(rows.map((r) => r.storeId)).not.toContain('604');
   });
 
-  it('marks a store dark when it has no orders in 7 days', () => {
+  it('marks a store dark when it has no orders in the window', () => {
+    // The daily rows passed in *are* the selected window, so dark means "no order
+    // in this window" — 601 and 602 both ordered within it, 603 did not.
     const rows = rollupStores(dims, daily, today);
     expect(rows.find((r) => r.storeId === '601')!.isDark).toBe(false);
-    expect(rows.find((r) => r.storeId === '602')!.isDark).toBe(true);
+    expect(rows.find((r) => r.storeId === '602')!.isDark).toBe(false);
+    expect(rows.find((r) => r.storeId === '603')!.isDark).toBe(true);
     expect(rows.find((r) => r.storeId === '603')!.daysSinceLastOrder).toBeNull();
   });
 
@@ -198,8 +201,9 @@ describe('store and state rollups', () => {
     const states = rollupStates(rows, totalByState);
     const mh = states.find((s) => s.state === 'Maharashtra')!;
     expect(mh.storesLive).toBe(2);
-    expect(mh.storesActive).toBe(1);
-    expect(mh.storesDark).toBe(1);
+    // Both Maharashtra stores ordered within the window, so both are active.
+    expect(mh.storesActive).toBe(2);
+    expect(mh.storesDark).toBe(0);
     expect(mh.activationPct).toBeCloseTo(0.5, 5);
     expect(mh.region).toBe('West');
   });

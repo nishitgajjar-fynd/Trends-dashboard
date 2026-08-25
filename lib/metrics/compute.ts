@@ -350,6 +350,8 @@ export interface StoreRollup {
   activatedOn: string | null;
   /** Orders on `asOf` — the window's last day, not the wall clock. */
   ordersOnLatestDay: number;
+  /** Orders across the whole selected window — the basis for active/dark. */
+  ordersInWindow: number;
   orders7d: number;
   orders28d: number;
   revenue28d: number;
@@ -403,6 +405,11 @@ export function rollupStores(
         region: s.region,
         activatedOn: s.activatedOn,
         ordersOnLatestDay: sum(rows.filter((r) => r.dateKey === asOf).map((r) => r.orders)),
+        // The passed rows are already limited to the selected window, so their
+        // sum is orders-in-window. active/dark are defined on this, so the window
+        // filter actually changes them (a 90-day window shows every store that
+        // ordered in 90 days, not just the last 7).
+        ordersInWindow: sum(rows.map((r) => r.orders)),
         orders7d: sum(inLast(7).map((r) => r.orders)),
         orders28d: sum(inLast(28).map((r) => r.orders)),
         revenue28d: sum(inLast(28).map((r) => r.revenue)),
@@ -411,7 +418,7 @@ export function rollupStores(
         coverage: cov ? ratio(cov.scans - cov.failed, cov.scans) : null,
         lastOrderDate,
         daysSinceLastOrder: daysSince,
-        isDark: sum(inLast(7).map((r) => r.orders)) === 0,
+        isDark: sum(rows.map((r) => r.orders)) === 0,
       };
     });
 }
@@ -444,7 +451,7 @@ export function rollupStates(stores: StoreRollup[], totalByState?: Map<string, n
         state,
         region: rows[0]?.region ?? '',
         storesLive: rows.length,
-        storesActive: rows.filter((r) => r.orders7d > 0).length,
+        storesActive: rows.filter((r) => r.ordersInWindow > 0).length,
         storesDark: rows.filter((r) => r.isDark).length,
         orders28d: sum(rows.map((r) => r.orders28d)),
         revenue28d: sum(rows.map((r) => r.revenue28d)),

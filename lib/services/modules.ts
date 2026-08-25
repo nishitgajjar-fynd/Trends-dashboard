@@ -564,7 +564,13 @@ export async function storesModule(input: ModuleInput = trailingWindow(28)): Pro
   const states = rollupStates(rows, totalByState);
 
   const live = rows.length;
-  const active = rows.filter((r) => r.orders7d > 0).length;
+  // Active/dark follow the selected window, not a fixed 7-day lookback: pick 90d
+  // and every store that ordered in 90 days counts as active.
+  const windowDays = Math.max(
+    1,
+    Math.round((Date.parse(`${w.end}T00:00:00Z`) - Date.parse(`${w.start}T00:00:00Z`)) / 86_400_000) + 1,
+  );
+  const active = rows.filter((r) => r.ordersInWindow > 0).length;
   const dark = rows.filter((r) => r.isDark).length;
   const orderedOnLatestDay = rows.filter((r) => r.ordersOnLatestDay > 0).length;
 
@@ -591,7 +597,7 @@ export async function storesModule(input: ModuleInput = trailingWindow(28)): Pro
     metricValue('stores_dark', dark, { ...meta }),
     metricValue(
       'orders_per_active_store',
-      active === 0 ? null : rows.reduce((a, r) => a + r.orders7d, 0) / active / 7,
+      active === 0 ? null : rows.reduce((a, r) => a + r.ordersInWindow, 0) / active / windowDays,
       { ...meta },
     ),
     // Median across live stores; the per-store value is a column on the
