@@ -3,10 +3,9 @@ import Link from 'next/link';
 import { journeyModule } from '@/lib/services/modules';
 import { KpiStrip } from '@/components/kpi/KpiCard';
 import { DropoffRanking, FunnelChart } from '@/components/charts/FunnelChart';
-import { Column, DataTable, ModuleHeader } from '@/components/table/DataTable';
+import { ModuleHeader } from '@/components/table/DataTable';
 import { FilterBar } from '@/components/filters/FilterBar';
 import { getFilterOptions } from '@/lib/services/filter-options';
-import { formatCount, formatPct } from '@/lib/format/currency';
 import { parseFilters, type RawParams } from '@/lib/params/filters';
 
 export const dynamic = 'force-dynamic';
@@ -17,14 +16,7 @@ export default async function JourneyPage({ searchParams }: { searchParams: Prom
     journeyModule(filters),
     getFilterOptions(),
   ]);
-  const { steps, dropoff, byPlatform, instrumentationGaps } = mod.data;
-
-  const platformCols: Column<(typeof byPlatform)[number]>[] = [
-    { key: 'p', header: 'Platform', render: (r) => r.platform },
-    { key: 's', header: 'Sessions', numeric: true, render: (r) => formatCount(r.sessions) },
-    { key: 'pu', header: 'Purchases', numeric: true, render: (r) => formatCount(r.purchases) },
-    { key: 'c', header: 'Conversion', numeric: true, render: (r) => formatPct(r.conversion, { precision: 2 }) },
-  ];
+  const { steps, dropoff, instrumentationGaps } = mod.data;
 
   return (
     <div className="space-y-5">
@@ -87,15 +79,6 @@ export default async function JourneyPage({ searchParams }: { searchParams: Prom
         <FunnelChart steps={steps} />
         <DropoffRanking steps={dropoff} />
       </div>
-
-      <DataTable
-        caption="Funnel by platform"
-        columns={platformCols}
-        rows={byPlatform}
-        rowKey={(r) => r.platform}
-        sourceNote={mod.sources[0]}
-        maxHeight={240}
-      />
     </div>
   );
 }
