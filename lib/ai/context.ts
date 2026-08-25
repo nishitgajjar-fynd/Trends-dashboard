@@ -85,10 +85,27 @@ function toContextState(s: MetricValue['state']): InsightContext['metrics'][numb
   }
 }
 
+/**
+ * Round every number in the context to 4 decimals. Two reasons: an unrounded
+ * float (e.g. AOV 1159.678484243537) is noise the model does not need, and its
+ * 12-digit decimal tail trips the Aadhaar guard in `assertNoPii` as a false
+ * positive. Integers and strings pass through unchanged.
+ */
+function roundDeep<T>(value: T): T {
+  if (typeof value === 'number') {
+    return (Number.isFinite(value) ? Math.round(value * 1e4) / 1e4 : value) as T;
+  }
+  if (Array.isArray(value)) return value.map(roundDeep) as T;
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, roundDeep(v)])) as T;
+  }
+  return value;
+}
+
 export function buildInsightContext(input: BuildContextInput): InsightContext {
   const flagged = new Set(input.anomalies.filter((a) => !a.suppressed).map((a) => a.metricId));
 
-  return {
+  return roundDeep({
     generatedAt: new Date().toISOString(),
     window: input.window,
     metrics: input.metrics.map((m) => ({
@@ -117,7 +134,7 @@ export function buildInsightContext(input: BuildContextInput): InsightContext {
     storeSignals: input.storeSignals,
     connectorHealth: input.connectorHealth,
     calendar: input.calendar,
-  };
+  });
 }
 
 /**
